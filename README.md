@@ -19,7 +19,7 @@ This projet will demonstrate how HL7 FHIR is fundamentally transforming software
 1. Use StructureDefinition to identify what are the key data elements (Summary Elements in FHIR StructureDefinition) in the resource, and automatically create the record summary list page on UI
 2. Use SearchParameter to identify what are search parameters, automatically display filtering fields in record summary list UI
 3. Use data elements and data validation rules defined in StructureDefinition to auto render the CRUD form and UI level data validation
-4. Use OperationDefinition to inspect the APIs and its input/output parameters of each API, and generate UI to allow users to perform specific actions, eg show "Reschedule appointment" button on UI if the backend API supports rescheduing appointment, and then bring users to the appointment reschedule UI with the input parameters specified in the OperationDefinition.
+4. Use OperationDefinition to inspect the APIs and its input/output parameters of each API, and generate UI to allow users to perform specific actions, eg show "Reschedule appointment" button on UI if the backend API supports rescheduling appointment, and then bring users to the appointment reschedule UI with the input parameters specified in the OperationDefinition.
 
 ## Overall strucutre of this repo
 
@@ -102,6 +102,9 @@ async function generateListColumns(resourceType) {
 
 You can checkout the code, and run the SPA web application, the backend APIs and system is hosted in Synapxe Innovation Sandbox (https://innovation.healthx.sg/production-equivalent-apis/), I also included the url and api key in the environment file.
 
-After you start the SPA, please search patient name with "Catherine" (I have prepared some sample records)
+After you start the SPA, please search patient name with "Catherine" which I have prepared some sample records for this patient
+
+![Home Page](./FHIR%20Web%20GenAI%20POC-1.png)
+![Patient Records Page](./FHIR%20Web%20GenAI%20POC-2.png)
 
 Try out and have fun!
