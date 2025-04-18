@@ -26,7 +26,8 @@ const PatientPage: React.FC = () => {
       location.pathname.includes('/new') ||
       location.pathname.includes('/careplan/') ||
       location.pathname.includes('/observation/') ||
-      location.pathname.includes('/medication/')
+      location.pathname.includes('/medication/') ||
+      location.pathname.includes('/encounter/crud/')
     );
   };
 
