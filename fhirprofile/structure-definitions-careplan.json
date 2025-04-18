@@ -1,0 +1,1428 @@
+﻿{
+  "resourceType": "Bundle",
+  "id": "structureDefinitions",
+  "meta": {
+    "lastUpdated": "2021-05-05T08:04:45.3420489+00:00"
+  },
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "http://ihis.sg/StructureDefinition/CarePlan-pophealth-plan",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/StructureDefinition/CarePlan-pophealth-plan",
+        "name": "HSARHealthPlan",
+        "status": "draft",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "CarePlan",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/CarePlan",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "CarePlan.extension:performer",
+              "path": "CarePlan.extension",
+              "sliceName": "performer",
+              "min": 1,
+              "max": 1,
+              "type": [
+                {
+                  "code": "Extension",
+                  "profile": ["http://ihis.sg/extension/performer"]
+                }
+              ]
+            },
+            {
+              "id": "CarePlan.status",
+              "path": "CarePlan.status",
+              "fixedCode": "active"
+            },
+            {
+              "id": "CarePlan.intent",
+              "path": "CarePlan.intent",
+              "fixedCode": "plan"
+            },
+            {
+              "id": "CarePlan.category",
+              "path": "CarePlan.category",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "id": "CarePlan.category.coding",
+              "path": "CarePlan.category.coding",
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://ihis.sg/ValueSet/hsg-care-plan-category"
+              }
+            },
+            {
+              "id": "CarePlan.category.coding.system",
+              "path": "CarePlan.category.coding.system",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.category.coding.code",
+              "path": "CarePlan.category.coding.code",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.subject",
+              "path": "CarePlan.subject",
+              "type": [
+                {
+                  "code": "Reference",
+                  "targetProfile": [
+                    "http://hl7.org/fhir/StructureDefinition/Patient"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "CarePlan.subject.type",
+              "path": "CarePlan.subject.type",
+              "min": 1,
+              "fixedUri": "Patient"
+            },
+            {
+              "id": "CarePlan.subject.identifier",
+              "path": "CarePlan.subject.identifier",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.subject.identifier.system",
+              "path": "CarePlan.subject.identifier.system",
+              "min": 1,
+              "fixedUri": "http://ihis.sg/identifier/nric"
+            },
+            {
+              "id": "CarePlan.subject.identifier.value",
+              "path": "CarePlan.subject.identifier.value",
+              "min": 1,
+              "constraint": {
+                "human": "Patient identifier value should not be empty",
+                "expression": "$this.length() > 0"
+              }
+            },
+            {
+              "id": "CarePlan.period",
+              "path": "CarePlan.period",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.author",
+              "path": "CarePlan.author",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Reference",
+                  "targetProfile": [
+                    "http://hl7.org/fhir/StructureDefinition/Organization"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "CarePlan.author.type",
+              "path": "CarePlan.author.type",
+              "min": 1,
+              "fixedUri": "Organization"
+            },
+            {
+              "id": "CarePlan.author.identifier",
+              "path": "CarePlan.author.identifier",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.author.identifier.system",
+              "path": "CarePlan.author.identifier.system",
+              "min": 1,
+              "fixedUri": "http://ihis.sg/identifier/hci-code"
+            },
+            {
+              "id": "CarePlan.author.identifier.value",
+              "path": "CarePlan.author.identifier.value",
+              "min": 1,
+              "constraint": {
+                "human": "Author identifier value should not be empty",
+                "expression": "$this.length() > 0"
+              }
+            },
+            {
+              "id": "CarePlan.activity",
+              "path": "CarePlan.activity",
+              "min": 1,
+              "max": "1"
+            },
+            {
+              "id": "CarePlan.activity.detail",
+              "path": "CarePlan.activity.detail",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.activity.detail.kind",
+              "path": "CarePlan.activity.detail.kind",
+              "min": 1,
+              "fixedCode": "Appointment"
+            },
+            {
+              "id": "CarePlan.activity.detail.code",
+              "path": "CarePlan.activity.detail.code",
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://ihis.sg/ValueSet/hsg-healthplan-activity-type"
+              },
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "CarePlan.activity.detail.code.coding.system",
+              "path": "CarePlan.activity.detail.code.coding.system",
+              "min": 1
+            },
+            {
+              "id": "CarePlan.activity.detail.status",
+              "path": "CarePlan.activity.detail.status",
+              "min": 1,
+              "fixedCode": "scheduled"
+            },
+            {
+              "id": "CarePlan.activity.detail.scheduled[x]",
+              "path": "CarePlan.activity.detail.scheduled[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Timing"
+                }
+              ]
+            },
+            {
+              "id": "CarePlan.activity.detail.scheduledTiming.event",
+              "path": "CarePlan.activity.detail.scheduledTiming.event",
+              "min": 1,
+              "max": 1,
+              "constraint": {
+                "human": "Expected date format is YYYY-MM. Minimum year is 2022.",
+                "expression": "$this.toString().matches('20[0-9]{2}-(0[1-9]|10|11|12)$')"
+              }
+            },
+            {
+              "id": "CarePlan.note",
+              "path": "CarePlan.note",
+              "min": 0,
+              "max": "1"
+            },
+            {
+              "id": "CarePlan.note.text",
+              "path": "CarePlan.note.text",
+              "min": 1,
+              "max": "1",
+              "constraint": {
+                "human": "Value must be between 1 to 5000 characters",
+                "expression": "$this.length() > 0 and $this.length() <= 5000"
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "fullUrl": "http://ihis.sg/profile/G1",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G1",
+        "name": "G1",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G1"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM001",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "min": 1,
+              "type": [
+                {
+                  "code": "Quantity",
+                  "profile": [
+                    "http://hl7.org/fhir/StructureDefinition/Duration"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.detail[x].value",
+              "path": "Goal.target.detail[x].value",
+              "min": "1",
+              "minValueDecimal": 1.0,
+              "maxValueDecimal": 999.9
+            },
+            {
+              "id": "Goal.target.detail[x].system",
+              "path": "Goal.target.detail[x].system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target.detail[x].code",
+              "path": "Goal.target.detail[x].code",
+              "min": "1",
+              "fixedCode": "kg"
+            },
+            {
+              "id": "Goal.target.due[x]",
+              "path": "Goal.target.due[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Duration"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.due[x].value",
+              "path": "Goal.target.due[x].value",
+              "min": 1,
+              "minValueDecimal": 1,
+              "maxValueDecimal": 12,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target.due[x].system",
+              "path": "Goal.target.due[x].system",
+              "min": 1,
+              "fixedUri": "http://unitsofmeasure.org"
+            },
+            {
+              "id": "Goal.target.due[x].code",
+              "path": "Goal.target.due[x].code",
+              "min": 1,
+              "fixedCode": "mo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G2",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G2",
+        "name": "G2",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G2"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM002",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.due[x]",
+              "path": "Goal.target.due[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "date"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.due[x].value",
+              "path": "Goal.target.due[x].value",
+              "min": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G3",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G3",
+        "name": "G3",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G3"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM003",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "min": 1,
+              "type": [
+                {
+                  "code": "Quantity",
+                  "profile": [
+                    "http://hl7.org/fhir/StructureDefinition/Duration"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.detail[x].value",
+              "path": "Goal.target.detail[x].value",
+              "min": "1",
+              "minValueDecimal": 0.1,
+              "maxValueDecimal": 40.0
+            },
+            {
+              "id": "Goal.target.detail[x].system",
+              "path": "Goal.target.detail[x].system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target.detail[x].code",
+              "path": "Goal.target.detail[x].code",
+              "min": "1",
+              "fixedCode": "%"
+            },
+            {
+              "id": "Goal.target.due[x]",
+              "path": "Goal.target.due[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Duration"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.due[x].value",
+              "path": "Goal.target.due[x].value",
+              "min": "1",
+              "minValueDecimal": 1,
+              "maxValueDecimal": 12,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target.due[x].system",
+              "path": "Goal.target.due[x].system",
+              "min": "1",
+              "fixedUri": "http://unitsofmeasure.org"
+            },
+            {
+              "id": "Goal.target.due[x].code",
+              "path": "Goal.target.due[x].code",
+              "min": "1",
+              "fixedCode": "mo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G4",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G4",
+        "name": "G4",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G4"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "constraint": {
+                "human": "If present, G4 goal measure allowed values are GM004, GM005",
+                "expression": "($this in ('GM004' | 'GM005'))"
+              },
+              "min": 1,
+              "max": 2
+            },
+            {
+              "id": "Goal.target",
+              "path": "Goal.target",
+              "slicing": {
+                "discriminator": [
+                  {
+                    "type": "value",
+                    "path": "measure.coding.code"
+                  }
+                ],
+                "rules": "open"
+              }
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              }
+            },
+            {
+              "id": "Goal.target:GM004",
+              "path": "Goal.target",
+              "sliceName": "GM004",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target:GM004.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM004",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target:GM004.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "min": 1,
+              "type": [
+                {
+                  "code": "Ratio"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.numerator",
+              "path": "Goal.target.detailRatio.numerator",
+              "min": "1",
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              }
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.numerator.value",
+              "path": "Goal.target.detailRatio.numerator.value",
+              "min": "1",
+              "minValueDecimal": 30,
+              "maxValueDecimal": 300,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.numerator.system",
+              "path": "Goal.target.detailRatio.numerator.system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.numerator.code",
+              "path": "Goal.target.detailRatio.numerator.code",
+              "min": "1",
+              "fixedCode": "mm[Hg]"
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.denominator",
+              "path": "Goal.target.detailRatio.denominator",
+              "min": 1,
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              }
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.denominator.value",
+              "path": "Goal.target.detailRatio.denominator.value",
+              "min": "1",
+              "minValueDecimal": 20,
+              "maxValueDecimal": 200,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.denominator.system",
+              "path": "Goal.target.detailRatio.denominator.system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target:GM004.detailRatio.denominator.code",
+              "path": "Goal.target.detailRatio.denominator.code",
+              "min": "1",
+              "fixedCode": "mm[Hg]"
+            },
+            {
+              "id": "Goal.target:GM004.due[x]",
+              "path": "Goal.target.due[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Duration"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target:GM004.due[x].value",
+              "path": "Goal.target.due[x].value",
+              "min": "1",
+              "minValueDecimal": 1,
+              "maxValueDecimal": 12,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target:GM004.due[x].system",
+              "path": "Goal.target.due[x].system",
+              "min": "1",
+              "fixedUri": "http://unitsofmeasure.org"
+            },
+            {
+              "id": "Goal.target:GM004.due[x].code",
+              "path": "Goal.target.due[x].code",
+              "min": "1",
+              "fixedCode": "mo"
+            },
+            {
+              "id": "Goal.target:GM005",
+              "path": "Goal.target",
+              "sliceName": "GM005",
+              "min": 0,
+              "max": "1"
+            },
+            {
+              "id": "Goal.target:GM005.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM005",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:GM005.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "min": 1,
+              "type": [
+                {
+                  "code": "Quantity"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target:GM005.detail[x].value",
+              "path": "Goal.target.detail[x].value",
+              "min": "1",
+              "minValueDecimal": 1,
+              "maxValueDecimal": 99,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target:GM005.detail[x].system",
+              "path": "Goal.target.detail[x].system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target:GM005.detail[x].code",
+              "path": "Goal.target.detail[x].code",
+              "min": "1",
+              "constraint": {
+                "human": "If present, GM005 goal measure allowed values are d, wk, mo",
+                "expression": "($this in ('d' | 'wk' | 'mo'))"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G5",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G5",
+        "name": "G5",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G5"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "min": "1",
+              "max": "1",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "GM006",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "min": "1",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "type": [
+                {
+                  "code": "Quantity",
+                  "profile": [
+                    "http://hl7.org/fhir/StructureDefinition/Duration"
+                  ]
+                }
+              ],
+              "constraint": {
+                "human": "If present, GM006 goal value should be between 0.1 to 30.0 for mmol/L or 1 to 999 for mg/dL",
+                "expression": "($this.code = 'mmol/L' and $this.value >= 0.1 and $this.value <= 30.0 ) or ($this.code = 'mg/dL' and $this.value >= 1 and $this.value <= 999 and $this.value.toString().matches('^[0-9]*$'))"
+              }
+            },
+            {
+              "id": "Goal.target.detail[x].system",
+              "path": "Goal.target.detail[x].system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target.detail[x].code",
+              "path": "Goal.target.detail[x].code",
+              "min": "1",
+              "constraint": {
+                "human": "If present, GM006 goal measure allowed values are mmol/L, mg/dL",
+                "expression": "($this in ('mmol/L' | 'mg/dL'))"
+              }
+            },
+            {
+              "id": "Goal.target.due[x]",
+              "path": "Goal.target.due[x]",
+              "min": 1,
+              "type": [
+                {
+                  "code": "Duration"
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.due[x].value",
+              "path": "Goal.target.due[x].value",
+              "min": "1",
+              "minValueDecimal": 1,
+              "maxValueDecimal": 12,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target.due[x].system",
+              "path": "Goal.target.due[x].system",
+              "min": "1",
+              "fixedUri": "http://unitsofmeasure.org"
+            },
+            {
+              "id": "Goal.target.due[x].code",
+              "path": "Goal.target.due[x].code",
+              "min": "1",
+              "fixedCode": "mo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G6",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G6",
+        "name": "G6",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G6"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": 1,
+              "max": 4
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "constraint": {
+                "human": "If present, G6 goal measure allowed values are PRG001, PRG002, PRG003, OTH001",
+                "expression": "($this in ('PRG001' | 'PRG002' | 'PRG003' | 'OTH001'))"
+              },
+              "min": 1,
+              "max": 4
+            },
+            {
+              "id": "Goal.target",
+              "path": "Goal.target",
+              "slicing": {
+                "discriminator": [
+                  {
+                    "type": "value",
+                    "path": "measure.coding.code"
+                  }
+                ],
+                "rules": "open"
+              }
+            },
+            {
+              "id": "Goal.target:PRG001",
+              "path": "Goal.target",
+              "sliceName": "PRG001",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:PRG001.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "PRG001",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:PRG001.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:PRG002",
+              "path": "Goal.target",
+              "sliceName": "PRG002",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:PRG002.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "PRG002",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:PRG002.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:PRG003",
+              "path": "Goal.target",
+              "sliceName": "PRG003",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:PRG003.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "PRG003",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:PRG003.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:OTH001",
+              "path": "Goal.target",
+              "sliceName": "OTH001",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:OTH001.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "OTH001",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:OTH001.measure.text",
+              "path": "Goal.target.measure.text",
+              "min": 1,
+              "constraint": {
+                "human": "Value must be between 1 to 500 characters",
+                "expression": "$this.length() > 0 and $this.length() <= 500"
+              }
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "max": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G7",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G7",
+        "name": "G7",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G7"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-goal-measure",
+              "min": 1,
+              "max": 4
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "constraint": {
+                "human": "If present, G7 goal measure allowed values are ACT001, ACT002, ACT003, OTH001",
+                "expression": "($this in ('ACT001' | 'ACT002' | 'ACT003' | 'OTH001'))"
+              },
+              "min": 1,
+              "max": 4
+            },
+            {
+              "id": "Goal.target",
+              "path": "Goal.target",
+              "slicing": {
+                "discriminator": [
+                  {
+                    "type": "value",
+                    "path": "measure.coding.code"
+                  }
+                ],
+                "rules": "open"
+              }
+            },
+            {
+              "id": "Goal.target:ACT001",
+              "path": "Goal.target",
+              "sliceName": "ACT001",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:ACT001.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "ACT001",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:ACT001.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:ACT002",
+              "path": "Goal.target",
+              "sliceName": "ACT002",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:ACT002.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "ACT002",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:ACT002.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:ACT003",
+              "path": "Goal.target",
+              "sliceName": "ACT003",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:ACT003.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "ACT003",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:ACT003.measure.text",
+              "path": "Goal.target.measure.text",
+              "max": 0
+            },
+            {
+              "id": "Goal.target:OTH001",
+              "path": "Goal.target",
+              "sliceName": "OTH001",
+              "max": 1
+            },
+            {
+              "id": "Goal.target:OTH001.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "fixedCode": "OTH001",
+              "min": 1
+            },
+            {
+              "id": "Goal.target:OTH001.measure.text",
+              "path": "Goal.target.measure.text",
+              "min": 1,
+              "constraint": {
+                "human": "Value must be between 1 to 500 characters",
+                "expression": "$this.length() > 0 and $this.length() <= 500"
+              }
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "max": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/G8",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/G8",
+        "name": "G8",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Goal",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Goal",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Goal.lifecycleStatus",
+              "path": "Goal.lifecycleStatus",
+              "fixedCode": "active"
+            },
+            {
+              "id": "Goal.description.coding.system",
+              "path": "Goal.description.coding.system",
+              "fixedCode": "http://ihis.sg/ValueSet/hsg-health-goal"
+            },
+            {
+              "id": "Goal.description.coding.code",
+              "path": "Goal.description.coding.code",
+              "fixedCode": "G8"
+            },
+            {
+              "id": "Goal.target.measure.coding",
+              "path": "Goal.target.measure.coding",
+              "min": "1",
+              "max": "1"
+            },
+            {
+              "id": "Goal.target.measure.coding.system",
+              "path": "Goal.target.measure.coding.system",
+              "min": "1",
+              "max": "1",
+              "fixedUri": "http://ihis.sg/ValueSet/hsg-goal-measure"
+            },
+            {
+              "id": "Goal.target.measure.coding.code",
+              "path": "Goal.target.measure.coding.code",
+              "min": "1",
+              "max": "1",
+              "fixedCode": "GM007"
+            },
+            {
+              "id": "Goal.target.detail[x]",
+              "path": "Goal.target.detail[x]",
+              "binding": {
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName",
+                    "valueString": "GoalTargetDetail"
+                  }
+                ],
+                "strength": "required",
+                "valueSet": "http://unitsofmeasure.org"
+              },
+              "min": 1,
+              "type": [
+                {
+                  "code": "Quantity",
+                  "profile": [
+                    "http://hl7.org/fhir/StructureDefinition/Duration"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "Goal.target.detail[x].value",
+              "path": "Goal.target.detail[x].value",
+              "min": "1",
+              "minValueDecimal": 1,
+              "maxValueDecimal": 7,
+              "constraint": {
+                "human": "Valid numeric value required",
+                "expression": "$this.toString().matches('^[0-9]*$')"
+              }
+            },
+            {
+              "id": "Goal.target.detail[x].system",
+              "path": "Goal.target.detail[x].system",
+              "min": "1"
+            },
+            {
+              "id": "Goal.target.detail[x].code",
+              "path": "Goal.target.detail[x].code",
+              "min": "1",
+              "fixedCode": "wk"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "http://ihis.sg/profile/C1",
+      "resource": {
+        "resourceType": "StructureDefinition",
+        "url": "http://ihis.sg/profile/C1",
+        "name": "patient-condition-tag",
+        "status": "active",
+        "fhirVersion": "4.0.1",
+        "kind": "resource",
+        "abstract": false,
+        "type": "Condition",
+        "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Condition",
+        "derivation": "constraint",
+        "differential": {
+          "element": [
+            {
+              "id": "Condition.category",
+              "path": "Condition.category",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "id": "Condition.category.coding",
+              "path": "Condition.category.coding",
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://ihis.sg/ValueSet/hsg-condition-category"
+              },
+              "min": 1
+            },
+            {
+              "id": "Condition.category.coding.system",
+              "path": "Condition.category.coding.system",
+              "min": 1
+            },
+            {
+              "id": "Condition.category.coding.code",
+              "path": "Condition.category.coding.code",
+              "min": 1
+            },
+            {
+              "id": "Condition.code",
+              "path": "Condition.code",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "id": "Condition.code.coding",
+              "path": "Condition.code.coding",
+              "binding": {
+                "strength": "required",
+                "valueSet": "http://ihis.sg/ValueSet/hsg-condition-tag"
+              },
+              "min": 1,
+              "max": 1
+            },
+            {
+              "id": "Condition.code.coding.system",
+              "path": "Condition.code.coding.system",
+              "min": 1
+            },
+            {
+              "id": "Condition.code.coding.code",
+              "path": "Condition.code.coding.code",
+              "min": 1
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
