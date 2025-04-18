@@ -147,13 +147,18 @@ const ObservationPage: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="sm:w-1/3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label 
+            htmlFor="category-filter" 
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Filter by Category:
           </label>
           <select
+            id="category-filter"
             className="w-full rounded-md border border-gray-300 shadow-sm py-2 px-3"
             value={selectedCategory}
             onChange={handleCategoryChange}
+            aria-label="Filter observations by category"
           >
             <option value="">All Categories</option>
             {categories.map((category) => (
@@ -165,14 +170,19 @@ const ObservationPage: React.FC = () => {
         </div>
 
         <div className="sm:w-1/3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label 
+            htmlFor="date-filter" 
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Filter by Date:
           </label>
           <input
             type="date"
+            id="date-filter"
             className="w-full rounded-md border border-gray-300 shadow-sm py-2 px-3"
             value={dateFilter}
             onChange={handleDateFilterChange}
+            aria-label="Filter observations by date"
           />
         </div>
       </div>

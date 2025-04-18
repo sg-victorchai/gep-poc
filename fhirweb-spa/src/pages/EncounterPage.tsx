@@ -151,13 +151,18 @@ const EncounterPage: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="sm:w-1/4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="encounter-type-filter"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Filter by Type:
           </label>
           <select
+            id="encounter-type-filter"
             className="w-full rounded-md border border-gray-300 shadow-sm py-2 px-3"
             value={selectedType}
             onChange={handleTypeChange}
+            aria-label="Filter encounters by type"
           >
             <option value="">All Types</option>
             {types.map((type) => (
@@ -169,13 +174,18 @@ const EncounterPage: React.FC = () => {
         </div>
 
         <div className="sm:w-1/4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="encounter-status-filter"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Filter by Status:
           </label>
           <select
+            id="encounter-status-filter"
             className="w-full rounded-md border border-gray-300 shadow-sm py-2 px-3"
             value={selectedStatus}
             onChange={handleStatusChange}
+            aria-label="Filter encounters by status"
           >
             <option value="">All Statuses</option>
             {statuses.map((status) => (
@@ -187,14 +197,19 @@ const EncounterPage: React.FC = () => {
         </div>
 
         <div className="sm:w-1/4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="encounter-date-filter"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Filter by Date:
           </label>
           <input
+            id="encounter-date-filter"
             type="date"
             className="w-full rounded-md border border-gray-300 shadow-sm py-2 px-3"
             value={dateFilter}
             onChange={handleDateFilterChange}
+            aria-label="Filter encounters by date"
           />
         </div>
       </div>
