@@ -1,5 +1,27 @@
 # This project is to demonstrate the amazing power of HL7 FHIR (https://www.hl7.org/fhir) and GenAI (GitHub Copilot)
 
+## Purpose of this projet
+
+This projet will demonstrate how **HL7 FHIR** and **AI-assisted coding** will fundamentally transform software development where we have to leverage AI - embrace or being wiped out.
+
+I will cover the journey in these 4 series,
+
+1. Use FHIR **StructureDefinition** resource to identify what are the key data elements (Summary Elements in FHIR StructureDefinition) in the resource, and automatically create the record summary list page on UI
+2. Use FHIR **SearchParameter** to identify the search parameters for the resource, automatically render filtering fields in record summary list UI
+3. Use data elements and data validation rules defined in FHIR **StructureDefinition** to auto render the CRUD form and UI level data validation
+4. Use FHIR **OperationDefinition** to inspect the APIs and its input/output parameters of each API, and generate UI to allow users to perform specific actions, eg show "Reschedule appointment" button on UI if the backend API supports rescheduling appointment, and then bring users to the appointment reschedule UI with the input parameters specified in the OperationDefinition.
+
+## Overall strucutre of this repo
+
+1. **.copilot** folder keeps all the prompt instruction. The prompt itself is also created by copilot itself.
+
+- fhir-typescript-spa-prompt.md - Prompt instructions to create SPA web application and integrate with HL7 FHIR APIs
+- ObservationUiGuide.md - Prompt instructions to create View and CRDU for Observation resource
+- FHIRResourceUIDevGuide.md - A generic prompt instructions to create View and CRUD form for any FHIR resources and custom resources
+
+2. **fhirprofile** folder keeps all the FHIR meta resources
+3. **fhirweb-spa** is the sample SPA web application co-created by copilot
+
 ## HL7 FHIR Overview
 
 HL7 FHIR is healthcare industry standard to define consistent data model and APIs, it not only defines the baseline mdoel for all common used resources such as Patient, Encounter, MedicationReqeust and CarePlan, it also allows each implementers to extend thorugh its built-in extension mechanism
@@ -11,23 +33,6 @@ In addition, HL7 FHIR also defines the metadata for all the resources and APIs u
 - OperationDefinition - https://hl7.org/fhir/R5/operationdefinition.html
 
 Lastly we can also leverage HL7 FHIR syntax to create and define our onw custom resources so that all the APIs are unified, this will bring the tremendous benefits for application development and integration.
-
-## Purpose of this projet
-
-This projet will demonstrate how **HL7 FHIR** and **AI-assisted coding** will fundamentally transforming software development where 80% of development
-
-I will cover the journey in these 4 series,
-
-1. Use StructureDefinition to identify what are the key data elements (Summary Elements in FHIR StructureDefinition) in the resource, and automatically create the record summary list page on UI
-2. Use SearchParameter to identify what are search parameters, automatically display filtering fields in record summary list UI
-3. Use data elements and data validation rules defined in StructureDefinition to auto render the CRUD form and UI level data validation
-4. Use OperationDefinition to inspect the APIs and its input/output parameters of each API, and generate UI to allow users to perform specific actions, eg show "Reschedule appointment" button on UI if the backend API supports rescheduling appointment, and then bring users to the appointment reschedule UI with the input parameters specified in the OperationDefinition.
-
-## Overall strucutre of this repo
-
-1. **.copilot** folder keeps all the prompt instruction. The prompt itself is also created by copilot itself.
-2. **fhirprofile** folder keeps all the FHIR meta resources
-3. **fhirweb-spa** is the sample SPA web application co-created by copilot
 
 ## Brief journey of copilot assisted development - Part 1
 
