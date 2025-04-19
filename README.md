@@ -14,7 +14,9 @@ Lastly we can also leverage HL7 FHIR syntax to create and define our onw custom 
 
 ## Purpose of this projet
 
-This projet will demonstrate how HL7 FHIR is fundamentally transforming software development in these 4 series,
+This projet will demonstrate how **HL7 FHIR** and **AI-assisted coding** will fundamentally transforming software development where 80% of development
+
+I will cover the journey in these 4 series,
 
 1. Use StructureDefinition to identify what are the key data elements (Summary Elements in FHIR StructureDefinition) in the resource, and automatically create the record summary list page on UI
 2. Use SearchParameter to identify what are search parameters, automatically display filtering fields in record summary list UI
@@ -23,9 +25,9 @@ This projet will demonstrate how HL7 FHIR is fundamentally transforming software
 
 ## Overall strucutre of this repo
 
-1. .copilot folder keeps all the prompt instruction. The prompt itself is also created by copilot itself.
-2. fhirprofile folder keeps all the FHIR meta resources
-3. fhirweb-spa is the sample SPA web application co-created by copilot
+1. **.copilot** folder keeps all the prompt instruction. The prompt itself is also created by copilot itself.
+2. **fhirprofile** folder keeps all the FHIR meta resources
+3. **fhirweb-spa** is the sample SPA web application co-created by copilot
 
 ## Brief journey of copilot assisted development - Part 1
 
