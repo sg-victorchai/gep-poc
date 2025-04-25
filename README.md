@@ -1,14 +1,14 @@
 # This project is to demonstrate the amazing power of HL7 FHIR (https://www.hl7.org/fhir) and GenAI (GitHub Copilot)
 
-## Purpose of this projet
+## Purpose of this project
 
 This projet will demonstrate how **HL7 FHIR** and **AI-assisted coding** will fundamentally transform software development where we have to leverage AI - embrace or being wiped out.
 
 I will cover the journey in these 4 series,
 
 1. Use FHIR **StructureDefinition** resource to identify what are the key data elements (Summary Elements in FHIR StructureDefinition) in the resource, and automatically create the record summary list page on UI
-2. Use FHIR **SearchParameter** to identify the search parameters for the resource, automatically render filtering fields in record summary list UI
-3. Use data elements and data validation rules defined in FHIR **StructureDefinition** to auto render the CRUD form and UI level data validation
+2. Use data elements and data validation rules defined in FHIR **StructureDefinition** to auto render the CRUD form and UI level data validation
+3. Use FHIR **SearchParameter** to identify the search parameters for the resource, automatically render filtering fields in record summary list UI
 4. Use FHIR **OperationDefinition** to inspect the APIs and its input/output parameters of each API, and generate UI to allow users to perform specific actions, eg show "Reschedule appointment" button on UI if the backend API supports rescheduling appointment, and then bring users to the appointment reschedule UI with the input parameters specified in the OperationDefinition.
 
 ## Overall strucutre of this repo
