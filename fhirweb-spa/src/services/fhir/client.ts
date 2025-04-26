@@ -159,7 +159,7 @@ export const fhirApi = createApi({
       ],
     }),
     getEncounters: builder.query<Bundle<Encounter>, string>({
-      queryFn: async (patientId, { signal }) => {
+      queryFn: async (patientId) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -180,7 +180,7 @@ export const fhirApi = createApi({
       ],
     }),
     getMedications: builder.query<Bundle<MedicationRequest>, string>({
-      queryFn: async (patientId, { signal }) => {
+      queryFn: async (patientId) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -201,7 +201,7 @@ export const fhirApi = createApi({
       ],
     }),
     getNextPage: builder.query<Bundle<Resource>, Bundle<Resource>>({
-      queryFn: async (bundle, { signal }) => {
+      queryFn: async (bundle) => {
         try {
           const client = createFHIRClient();
           const results = await client.nextPage({ bundle });
@@ -214,7 +214,7 @@ export const fhirApi = createApi({
       },
     }),
     getPreviousPage: builder.query<Bundle<Resource>, Bundle<Resource>>({
-      queryFn: async (bundle, { signal }) => {
+      queryFn: async (bundle) => {
         try {
           const client = createFHIRClient();
           const results = await client.prevPage({ bundle });
@@ -230,7 +230,7 @@ export const fhirApi = createApi({
       Resource,
       { resourceType: string; resource: Resource }
     >({
-      queryFn: async ({ resourceType, resource }, { signal }) => {
+      queryFn: async ({ resourceType, resource }) => {
         try {
           const client = createFHIRClient();
           const result = await client.create({
@@ -258,7 +258,7 @@ export const fhirApi = createApi({
       Resource,
       { resourceType: string; id: string; resource: Resource }
     >({
-      queryFn: async ({ resourceType, id, resource }, { signal }) => {
+      queryFn: async ({ resourceType, id, resource }) => {
         try {
           const client = createFHIRClient();
           const result = await client.update({
@@ -287,7 +287,7 @@ export const fhirApi = createApi({
       void,
       { resourceType: string; id: string }
     >({
-      queryFn: async ({ resourceType, id }, { signal }) => {
+      queryFn: async ({ resourceType, id }) => {
         try {
           const client = createFHIRClient();
           await client.delete({
@@ -314,7 +314,7 @@ export const fhirApi = createApi({
       Resource,
       { resourceType: string; id: string }
     >({
-      queryFn: async ({ resourceType, id }, { signal }) => {
+      queryFn: async ({ resourceType, id }) => {
         try {
           const client = createFHIRClient();
           const resource = await client.read({
@@ -328,7 +328,7 @@ export const fhirApi = createApi({
           };
         }
       },
-      providesTags: (result, error, { resourceType, id }) => [
+      providesTags: (_result, _error, { resourceType, id }) => [
         { type: resourceType as any, id },
       ],
     }),
@@ -337,10 +337,9 @@ export const fhirApi = createApi({
       Bundle<Resource>,
       { searchParams?: Record<string, string> }
     >({
-      queryFn: async (
-        { searchParams = { _count: '100', _sort: 'family' } },
-        { signal },
-      ) => {
+      queryFn: async ({
+        searchParams = { _count: '100', _sort: 'family' },
+      }) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -360,10 +359,7 @@ export const fhirApi = createApi({
       Bundle<Resource>,
       { searchParams?: Record<string, string> }
     >({
-      queryFn: async (
-        { searchParams = { _count: '100', _sort: 'name' } },
-        { signal },
-      ) => {
+      queryFn: async ({ searchParams = { _count: '100', _sort: 'name' } }) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -383,10 +379,7 @@ export const fhirApi = createApi({
       Bundle<Resource>,
       { patientId: string; searchParams?: Record<string, string> }
     >({
-      queryFn: async (
-        { patientId, searchParams = { _count: '100' } },
-        { signal },
-      ) => {
+      queryFn: async ({ patientId, searchParams = { _count: '100' } }) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -409,7 +402,7 @@ export const fhirApi = createApi({
     }),
     // Function to get a single practitioner by ID
     getPractitionerById: builder.query<Resource, string>({
-      queryFn: async (id, { signal }) => {
+      queryFn: async (id) => {
         try {
           const client = createFHIRClient();
           const resource = await client.read({
