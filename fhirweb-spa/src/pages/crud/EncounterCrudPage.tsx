@@ -5,9 +5,12 @@ import {
   useCreateResourceMutation,
   useUpdateResourceMutation,
   useDeleteResourceMutation,
+  useGetPractitionersQuery,
+  useGetOrganizationsQuery,
+  useGetConditionsQuery,
+  useGetPractitionerByIdQuery,
 } from '../../services/fhir/client';
-import { generateFormGroups } from '../../services/fhir/uiUtils';
-import { Encounter } from 'fhir/r5';
+import { Encounter, Practitioner } from 'fhir/r5';
 
 // Interface for form group structure
 interface FormGroup {
@@ -15,6 +18,159 @@ interface FormGroup {
   title: string;
   elements: string[];
   description?: string;
+}
+
+// Interface for reference options
+interface ReferenceOption {
+  reference: string;
+  display: string;
+}
+
+// Interface for coding options
+interface CodingOption {
+  system: string;
+  code: string;
+  display: string;
+}
+
+// Common participant type coding options
+const PARTICIPANT_TYPE_OPTIONS: CodingOption[] = [
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'PPRF',
+    display: 'Primary Performer',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'SPRF',
+    display: 'Secondary Performer',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'ATND',
+    display: 'Attender',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'CON',
+    display: 'Consultant',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'REF',
+    display: 'Referrer',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'ADM',
+    display: 'Admitter',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'DIS',
+    display: 'Discharger',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+    code: 'CALLBCK',
+    display: 'Callback Contact',
+  },
+];
+
+// Interface for encounter location to enforce required 'location' property
+interface EncounterLocation {
+  status?: string;
+  location: {
+    display?: string;
+    reference?: string;
+  };
+}
+
+// Define our own custom Encounter type to avoid FHIR R5 compatibility issues
+interface CustomEncounter {
+  resourceType: string;
+  id?: string;
+  status?: string;
+  class?: Array<{
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  }>;
+  subject?: {
+    reference?: string;
+    display?: string;
+  };
+  actualPeriod?: {
+    start?: string;
+    end?: string;
+  };
+  serviceProvider?: {
+    reference?: string;
+    display?: string;
+  };
+  type?: Array<{
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+    text?: string;
+  }>;
+  participant?: Array<{
+    type?: Array<{
+      coding?: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+      text?: string;
+    }>;
+    period?: {
+      start?: string;
+      end?: string;
+    };
+    actor?: {
+      reference?: string;
+      display?: string;
+    };
+  }>;
+  diagnosis?: Array<{
+    condition: {
+      reference: string;
+      display: string;
+    };
+    use: {
+      coding: Array<{
+        system?: string;
+        code: string;
+        display?: string;
+      }>;
+    };
+  }>;
+  reasonCode?: Array<{
+    coding: Array<{
+      system: string;
+      code: string;
+      display?: string;
+    }>;
+    text?: string;
+  }>;
+  reasonReference?: Array<{
+    reference: string;
+    display: string;
+  }>;
+  hospitalization?: {
+    admitSource?: {
+      coding: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+    };
+  };
+  location?: EncounterLocation[];
 }
 
 const EncounterCrudPage: React.FC = () => {
@@ -29,7 +185,7 @@ const EncounterCrudPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState<boolean>(!resourceId);
 
   // State for form groups - using the required 6 groups for Encounter
-  const [formGroups, setFormGroups] = useState<FormGroup[]>([
+  const [formGroups] = useState<FormGroup[]>([
     {
       id: 'overview',
       title: 'Overview',
@@ -76,7 +232,7 @@ const EncounterCrudPage: React.FC = () => {
   ]);
 
   // State for form
-  const [formData, setFormData] = useState<Partial<Encounter>>({
+  const [formData, setFormData] = useState<CustomEncounter>({
     resourceType: 'Encounter',
     status: 'planned',
     class: [
@@ -115,9 +271,15 @@ const EncounterCrudPage: React.FC = () => {
   });
 
   // State for reference options
-  const [organizationOptions, setOrganizationOptions] = useState<any[]>([]);
-  const [conditionOptions, setConditionOptions] = useState<any[]>([]);
-  const [practitionerOptions, setPractitionerOptions] = useState<any[]>([]);
+  const [organizationOptions, setOrganizationOptions] = useState<
+    ReferenceOption[]
+  >([]);
+  const [conditionOptions, setConditionOptions] = useState<ReferenceOption[]>(
+    [],
+  );
+  const [practitionerOptions, setPractitionerOptions] = useState<
+    ReferenceOption[]
+  >([]);
 
   // Fetch existing resource if editing
   const { data: existingResource, isLoading: isLoadingResource } =
@@ -125,6 +287,22 @@ const EncounterCrudPage: React.FC = () => {
       { resourceType: 'Encounter', id: resourceId || '' },
       { skip: !resourceId },
     );
+
+  // Fetch reference data using RTK Query
+  const { data: practitionersData } = useGetPractitionersQuery(
+    { searchParams: { _count: '100', _sort: 'family' } },
+    { skip: !patientId },
+  );
+
+  const { data: organizationsData } = useGetOrganizationsQuery(
+    { searchParams: { _count: '100', _sort: 'name' } },
+    { skip: !patientId },
+  );
+
+  const { data: conditionsData } = useGetConditionsQuery(
+    { patientId: patientId || '' },
+    { skip: !patientId },
+  );
 
   // Mutations
   const [createResource, { isLoading: isCreating }] =
@@ -137,70 +315,132 @@ const EncounterCrudPage: React.FC = () => {
   // Load existing data if editing
   useEffect(() => {
     if (existingResource) {
-      const encounter = existingResource as Encounter;
+      const encounter = existingResource as unknown as CustomEncounter;
       setFormData(encounter);
     }
   }, [existingResource]);
 
-  // Fetch reference options when component mounts
+  // Fetch reference data from RTK Query hooks
   useEffect(() => {
-    const fetchReferenceOptions = async () => {
-      try {
-        // Fetch organizations for service provider
-        const orgResponse = await fetch(
-          `https://hapi.fhir.org/baseR4/Organization?_count=100&_sort=name`,
-        );
-        const orgData = await orgResponse.json();
-        if (orgData.entry) {
-          setOrganizationOptions(
-            orgData.entry.map((entry: any) => ({
-              reference: `Organization/${entry.resource.id}`,
-              display: entry.resource.name || 'Unknown Organization',
-            })),
-          );
-        }
+    // Process organization data
+    if (organizationsData?.entry) {
+      setOrganizationOptions(
+        organizationsData.entry.map((entry: any) => ({
+          reference: `Organization/${entry.resource.id}`,
+          display: entry.resource.name || 'Unknown Organization',
+        })),
+      );
+    }
 
-        // Fetch conditions for diagnosis
-        const conditionResponse = await fetch(
-          `https://hapi.fhir.org/baseR4/Condition?patient=${patientId}&_count=100`,
-        );
-        const conditionData = await conditionResponse.json();
-        if (conditionData.entry) {
-          setConditionOptions(
-            conditionData.entry.map((entry: any) => ({
-              reference: `Condition/${entry.resource.id}`,
-              display:
-                entry.resource.code?.coding?.[0]?.display ||
-                entry.resource.code?.text ||
-                'Unnamed Condition',
-            })),
-          );
-        }
+    // Process condition data
+    if (conditionsData?.entry) {
+      setConditionOptions(
+        conditionsData.entry.map((entry: any) => ({
+          reference: `Condition/${entry.resource.id}`,
+          display:
+            entry.resource.code?.coding?.[0]?.display ||
+            entry.resource.code?.text ||
+            'Unnamed Condition',
+        })),
+      );
+    }
 
-        // Fetch practitioners
-        const practitionerResponse = await fetch(
-          `https://hapi.fhir.org/baseR4/Practitioner?_count=100&_sort=family`,
-        );
-        const practitionerData = await practitionerResponse.json();
-        if (practitionerData.entry) {
-          setPractitionerOptions(
-            practitionerData.entry.map((entry: any) => ({
-              reference: `Practitioner/${entry.resource.id}`,
-              display: entry.resource.name?.[0]?.family
-                ? `${entry.resource.name[0].given?.[0] || ''} ${
-                    entry.resource.name[0].family
-                  }`
-                : 'Unknown Practitioner',
-            })),
-          );
+    // Process practitioner data
+    if (practitionersData?.entry) {
+      setPractitionerOptions(
+        practitionersData.entry.map((entry: any) => ({
+          reference: `Practitioner/${entry.resource.id}`,
+          display: entry.resource.name?.[0]?.family
+            ? `${entry.resource.name[0].given?.[0] || ''} ${
+                entry.resource.name[0].family
+              }`
+            : 'Unknown Practitioner',
+        })),
+      );
+    }
+  }, [organizationsData, conditionsData, practitionersData]);
+
+  // State to track missing practitioner IDs
+  const [missingPractitionerIds, setMissingPractitionerIds] = useState<
+    string[]
+  >([]);
+
+  // Fetch individual practitioners by ID
+  const { data: practitionerData } = useGetPractitionerByIdQuery(
+    missingPractitionerIds[0] || '',
+    { skip: !missingPractitionerIds.length },
+  );
+
+  // Process individual practitioner data when it's available
+  useEffect(() => {
+    if (practitionerData && missingPractitionerIds.length > 0) {
+      const id = missingPractitionerIds[0];
+      const practitioner = practitionerData as Practitioner;
+      const display = practitioner.name?.[0]?.family
+        ? `${practitioner.name[0].given?.[0] || ''} ${
+            practitioner.name[0].family
+          }`
+        : 'Unknown Practitioner';
+
+      // Add to practitioner options
+      setPractitionerOptions((prev) => {
+        if (!prev.some((p) => p.reference === `Practitioner/${id}`)) {
+          return [
+            ...prev,
+            {
+              reference: `Practitioner/${id}`,
+              display: display,
+            },
+          ];
         }
-      } catch (error) {
-        console.error('Error fetching reference options:', error);
+        return prev;
+      });
+
+      // Remove the ID we just processed
+      setMissingPractitionerIds((prev) => prev.slice(1));
+
+      console.log(`Added missing practitioner: ${display}`);
+    }
+  }, [practitionerData, missingPractitionerIds]);
+
+  // Identify missing practitioners that need to be fetched
+  useEffect(() => {
+    if (formData.participant && formData.participant.length > 0) {
+      // Check if we need to update actors that don't match any options
+      const needsUpdate = formData.participant.some(
+        (p) =>
+          p.actor?.reference &&
+          !practitionerOptions.some((o) => o.reference === p.actor?.reference),
+      );
+
+      if (needsUpdate) {
+        // Extract practitioner IDs from references
+        const missingRefs =
+          formData.participant
+            ?.filter(
+              (p) =>
+                p.actor?.reference &&
+                !practitionerOptions.some(
+                  (o) => o.reference === p.actor?.reference,
+                ),
+            )
+            ?.map((p) => p.actor?.reference || '')
+            .filter((ref) => ref.startsWith('Practitioner/'))
+            .map((ref) => ref.replace('Practitioner/', '')) || [];
+
+        if (missingRefs.length === 0) return;
+
+        console.log('Missing practitioners found:', missingRefs);
+
+        // Set the IDs to be fetched one by one
+        setMissingPractitionerIds((prev) => {
+          // Only add IDs that aren't already in the queue
+          const newIds = missingRefs.filter((id) => !prev.includes(id));
+          return [...prev, ...newIds];
+        });
       }
-    };
-
-    fetchReferenceOptions();
-  }, [patientId]);
+    }
+  }, [formData.participant, practitionerOptions]);
 
   // Add debug logging to track actor references
   useEffect(() => {
@@ -213,123 +453,19 @@ const EncounterCrudPage: React.FC = () => {
         'Available practitioner options:',
         practitionerOptions.map((p) => p.reference),
       );
-    }
-  }, [formData.participant, practitionerOptions]);
 
-  // Load practitioners properly for existing participants
-  useEffect(() => {
-    if (
-      formData.participant &&
-      formData.participant.length > 0 &&
-      practitionerOptions.length > 0
-    ) {
-      // For each participant that has an actor reference but no matching option in the dropdown
-      const updatedParticipants = formData.participant.map((participant) => {
-        if (
-          participant.actor?.reference &&
-          !practitionerOptions.some(
-            (option) => option.reference === participant.actor?.reference,
-          )
-        ) {
-          console.log(
-            `Need to fetch practitioner details for: ${participant.actor.reference}`,
-          );
-
-          // If we have a display name already, keep using the existing data for now
-          return participant;
-        }
-        return participant;
-      });
-
-      // Check if we need to update actors that don't match any options
-      const needsUpdate = formData.participant.some(
+      // Check if all options are loaded
+      const allReferencesFound = formData.participant.every(
         (p) =>
-          p.actor?.reference &&
-          !practitionerOptions.some((o) => o.reference === p.actor?.reference),
+          !p.actor?.reference ||
+          practitionerOptions.some(
+            (option) => option.reference === p.actor?.reference,
+          ),
       );
 
-      if (needsUpdate) {
-        // Fetch the missing practitioners
-        const fetchMissingPractitioners = async () => {
-          try {
-            // Extract practitioner IDs from references
-            const missingRefs = formData.participant
-              .filter(
-                (p) =>
-                  p.actor?.reference &&
-                  !practitionerOptions.some(
-                    (o) => o.reference === p.actor?.reference,
-                  ),
-              )
-              .map((p) => p.actor?.reference || '')
-              .filter((ref) => ref.startsWith('Practitioner/'))
-              .map((ref) => ref.replace('Practitioner/', ''));
-
-            if (missingRefs.length === 0) return;
-
-            console.log('Fetching missing practitioners:', missingRefs);
-
-            // Fetch each missing practitioner
-            for (const id of missingRefs) {
-              const response = await fetch(
-                `https://hapi.fhir.org/baseR4/Practitioner/${id}`,
-              );
-              if (response.ok) {
-                const data = await response.json();
-                if (data) {
-                  // Add this practitioner to the options
-                  const display = data.name?.[0]?.family
-                    ? `${data.name[0].given?.[0] || ''} ${data.name[0].family}`
-                    : 'Unknown Practitioner';
-
-                  setPractitionerOptions((prev) => [
-                    ...prev,
-                    {
-                      reference: `Practitioner/${id}`,
-                      display: display,
-                    },
-                  ]);
-
-                  console.log(`Added missing practitioner: ${display}`);
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching missing practitioners:', error);
-          }
-        };
-
-        fetchMissingPractitioners();
-      }
+      console.log('All references found:', allReferencesFound);
     }
   }, [formData.participant, practitionerOptions]);
-
-  // Load form groups dynamically on component mount
-  // We'll keep the existing hardcoded form groups for now,
-  // as there may be issues with the file path for the structure definition
-  /*
-  useEffect(() => {
-    const loadFormGroups = async () => {
-      try {
-        // Try to load dynamically, but fall back to hardcoded groups on error
-        const groups = await generateFormGroups('Encounter');
-        console.log('Loaded form groups:', groups);
-        
-        // Only update state if we got valid groups
-        if (groups && groups.length > 0) {
-          setFormGroups(groups);
-        } else {
-          console.warn('Received empty form groups, keeping default ones');
-        }
-      } catch (error) {
-        console.error('Error loading form groups:', error);
-        // Keep the default form groups if there's an error
-      }
-    };
-
-    loadFormGroups();
-  }, []);
-  */
 
   // Form change handler
   const handleChange = (
@@ -461,7 +597,11 @@ const EncounterCrudPage: React.FC = () => {
 
         // Ensure location at this index exists
         if (!updatedLocations[locationIndex]) {
-          updatedLocations[locationIndex] = {};
+          updatedLocations[locationIndex] = {
+            location: {
+              display: '',
+            },
+          };
         }
 
         // Update the specific field using a helper function
@@ -488,7 +628,7 @@ const EncounterCrudPage: React.FC = () => {
     const { name, value } = e.target;
 
     // Find the selected option to get both reference and display
-    let selectedOption;
+    let selectedOption: ReferenceOption | undefined;
     let referenceType = name.split('.')[0];
 
     if (referenceType === 'serviceProvider') {
@@ -526,6 +666,17 @@ const EncounterCrudPage: React.FC = () => {
             condition: {
               reference: value,
               display: selectedOption?.display || '',
+            },
+            // Make sure use is always defined with required coding array
+            use: prev.diagnosis?.[0]?.use || {
+              coding: [
+                {
+                  system:
+                    'http://terminology.hl7.org/CodeSystem/diagnosis-role',
+                  code: 'AD',
+                  display: 'Admission Diagnosis',
+                },
+              ],
             },
           },
         ],
@@ -633,28 +784,136 @@ const EncounterCrudPage: React.FC = () => {
     e.preventDefault();
 
     try {
-      // Clean up form data before submitting
-      const cleanedFormData = { ...formData };
+      // Create a deep clone of form data
+      const rawData = JSON.parse(JSON.stringify(formData));
 
-      // Create a new actualPeriod object with properly formatted dates instead of modifying existing one
+      // Create a clean data structure with proper arrays (not objects with numeric keys)
+      const cleanedFormData: CustomEncounter = {
+        ...rawData,
+        resourceType: 'Encounter',
+      };
+
+      // Fix periods with proper date formatting
       if (cleanedFormData.actualPeriod) {
-        const newPeriod: any = {};
-
         if (cleanedFormData.actualPeriod.start) {
-          newPeriod.start = new Date(
+          cleanedFormData.actualPeriod.start = new Date(
             cleanedFormData.actualPeriod.start,
           ).toISOString();
         }
-
         if (cleanedFormData.actualPeriod.end) {
-          newPeriod.end = new Date(
+          cleanedFormData.actualPeriod.end = new Date(
             cleanedFormData.actualPeriod.end,
           ).toISOString();
         }
-
-        // Replace the existing period with our new one
-        cleanedFormData.actualPeriod = newPeriod;
       }
+
+      // Ensure participant structure is correct
+      if (
+        cleanedFormData.participant &&
+        Array.isArray(cleanedFormData.participant)
+      ) {
+        cleanedFormData.participant = cleanedFormData.participant.map(
+          (participant) => {
+            // Create a new participant object with the correct structure
+            const cleanParticipant: any = { ...participant };
+
+            // Handle type field - ensure it's a proper array, not an object with numeric keys
+            if (participant.type) {
+              // Create a proper array of type objects
+              cleanParticipant.type = Array.isArray(participant.type)
+                ? participant.type.map((typeItem) => {
+                    if (typeof typeItem === 'object' && typeItem !== null) {
+                      const newTypeItem: any = {};
+
+                      // Copy text property
+                      if (typeItem && 'text' in typeItem) {
+                        newTypeItem.text = typeItem.text;
+                      }
+
+                      // Ensure coding is a proper array
+                      if (typeItem && 'coding' in typeItem) {
+                        const coding = typeItem.coding;
+                        if (coding) {
+                          newTypeItem.coding = Array.isArray(coding)
+                            ? coding.map((code) =>
+                                typeof code === 'object' && code !== null
+                                  ? { ...code }
+                                  : { code },
+                              )
+                            : Object.values(coding).map((code) =>
+                                typeof code === 'object' && code !== null
+                                  ? { ...code }
+                                  : { code },
+                              );
+                        }
+                      }
+
+                      return newTypeItem;
+                    }
+                    return typeItem;
+                  })
+                : Object.values(participant.type).map((typeItem) => {
+                    if (typeof typeItem === 'object') {
+                      const newTypeItem: any = {};
+
+                      // Copy text property
+                      if (
+                        typeItem !== null &&
+                        typeItem !== undefined &&
+                        'text' in typeItem
+                      ) {
+                        newTypeItem.text = typeItem.text;
+                      }
+
+                      // Ensure coding is a proper array
+                      if (
+                        typeItem !== null &&
+                        typeItem !== undefined &&
+                        'coding' in typeItem
+                      ) {
+                        const coding = typeItem.coding;
+                        if (coding) {
+                          newTypeItem.coding = Array.isArray(coding)
+                            ? coding.map((code) => ({ ...code }))
+                            : Object.values(coding).map((code) => ({
+                                ...code,
+                              }));
+                        }
+                      }
+
+                      return newTypeItem;
+                    }
+                    return typeItem;
+                  });
+            }
+
+            // Handle period field - ensure dates are properly formatted
+            if (participant.period) {
+              cleanParticipant.period = { ...participant.period };
+              if (cleanParticipant.period.start) {
+                cleanParticipant.period.start = new Date(
+                  cleanParticipant.period.start,
+                ).toISOString();
+              }
+              if (cleanParticipant.period.end) {
+                cleanParticipant.period.end = new Date(
+                  cleanParticipant.period.end,
+                ).toISOString();
+              }
+            }
+
+            return cleanParticipant;
+          },
+        );
+      }
+
+      // Log the structure for debugging
+      console.log(
+        'Cleaned form data participant structure:',
+        cleanedFormData.participant?.[0]?.type
+          ? JSON.stringify(cleanedFormData.participant[0].type, null, 2)
+          : 'No participants',
+      );
 
       // Remove empty arrays and objects
       Object.keys(cleanedFormData).forEach((key) => {
@@ -773,6 +1032,7 @@ const EncounterCrudPage: React.FC = () => {
                   display: '',
                 },
               ],
+              text: '',
             },
           ],
           period: {
@@ -941,17 +1201,18 @@ const EncounterCrudPage: React.FC = () => {
                     >
                       <p className="text-gray-900">
                         <span className="font-medium">Type:</span>{' '}
-                        {participant.type?.[0]?.coding?.[0]?.display || '-'}
+                        {participant.type?.[0]?.text
+                          ? participant.type[0].text
+                          : participant.type?.[0]?.coding?.[0]?.display ||
+                            participant.type?.[0]?.coding?.[0]?.code ||
+                            '-'}
+                        {participant.type?.[0]?.text &&
+                          participant.type?.[0]?.coding?.[0]?.display &&
+                          ` (${participant.type[0].coding[0].display})`}
                       </p>
                       <p className="text-gray-900">
                         <span className="font-medium">Actor:</span>{' '}
                         {participant.actor?.display || '-'}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        <span className="font-medium">Period:</span>{' '}
-                        {participant.period?.start
-                          ? `Start: ${formatDate(participant.period.start)}`
-                          : ''}
                         {participant.period?.end
                           ? ` End: ${formatDate(participant.period.end)}`
                           : ''}
@@ -1267,21 +1528,100 @@ const EncounterCrudPage: React.FC = () => {
                     {/* Type field */}
                     <div>
                       <label
-                        htmlFor={`participant.${index}.type.0.coding.0.display`}
+                        htmlFor={`participant.${index}.type.0.text`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Type
+                        Type Text
                       </label>
                       <input
                         type="text"
-                        name={`participant.${index}.type.0.coding.0.display`}
-                        id={`participant.${index}.type.0.coding.0.display`}
-                        value={
-                          participant.type?.[0]?.coding?.[0]?.display || ''
-                        }
+                        name={`participant.${index}.type.0.text`}
+                        id={`participant.${index}.type.0.text`}
+                        value={participant.type?.[0]?.text || ''}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
+                        placeholder="Custom type description"
                       />
+                      <label
+                        htmlFor={`participant.${index}.type.0.coding.0.code`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Type Coding
+                      </label>
+                      <select
+                        name={`participant.${index}.type.0.coding.0.code`}
+                        id={`participant.${index}.type.0.coding.0.code`}
+                        value={participant.type?.[0]?.coding?.[0]?.code || ''}
+                        onChange={(e) => {
+                          const selectedCode = e.target.value;
+                          const selectedOption = PARTICIPANT_TYPE_OPTIONS.find(
+                            (option) => option.code === selectedCode,
+                          );
+
+                          // Update both the code and display values for the selected coding
+                          setFormData((prev) => {
+                            const updatedParticipants = [
+                              ...(prev.participant || []),
+                            ];
+
+                            // Create a fresh new object for this participant
+                            updatedParticipants[index] = {
+                              ...(updatedParticipants[index] || {}),
+                            };
+
+                            // Create a fresh type array
+                            if (!updatedParticipants[index].type) {
+                              updatedParticipants[index].type = [{}];
+                            } else {
+                              // Clone the type array to ensure it's extensible
+                              updatedParticipants[index].type = [
+                                ...updatedParticipants[index].type,
+                              ];
+                              // Ensure the first element exists and is extensible
+                              updatedParticipants[index].type[0] = {
+                                ...(updatedParticipants[index].type[0] || {}),
+                              };
+                            }
+
+                            // Create a fresh coding array
+                            if (!updatedParticipants[index].type[0].coding) {
+                              updatedParticipants[index].type[0].coding = [{}];
+                            } else {
+                              // Clone the coding array to ensure it's extensible
+                              updatedParticipants[index].type[0].coding = [
+                                ...updatedParticipants[index].type[0].coding,
+                              ];
+                              // Ensure the first element exists and is extensible
+                              updatedParticipants[index].type[0].coding[0] = {
+                                ...(updatedParticipants[index].type[0]
+                                  .coding[0] || {}),
+                              };
+                            }
+
+                            // Now assign the new values to the freshly created extensible object
+                            updatedParticipants[index].type[0].coding[0] = {
+                              system:
+                                selectedOption?.system ||
+                                'http://terminology.hl7.org/CodeSystem/v3-ParticipationType',
+                              code: selectedCode,
+                              display: selectedOption?.display || '',
+                            };
+
+                            return {
+                              ...prev,
+                              participant: updatedParticipants,
+                            };
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select participant type coding</option>
+                        {PARTICIPANT_TYPE_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Actor field (reference) */}
@@ -1297,9 +1637,31 @@ const EncounterCrudPage: React.FC = () => {
                         id={`participant.${index}.actor.reference`}
                         value={participant.actor?.reference || ''}
                         onChange={handleReferenceChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                          participant.actor?.reference &&
+                          !practitionerOptions.some(
+                            (opt) =>
+                              opt.reference === participant.actor?.reference,
+                          )
+                            ? 'bg-yellow-50'
+                            : ''
+                        }`}
                       >
                         <option value="">Select actor</option>
+                        {/* Add an option for the current participant if it exists but isn't in practitionerOptions */}
+                        {participant.actor?.reference &&
+                          !practitionerOptions.some(
+                            (opt) =>
+                              opt.reference === participant.actor?.reference,
+                          ) && (
+                            <option
+                              value={participant.actor.reference}
+                              key={participant.actor.reference}
+                            >
+                              {participant.actor.display ||
+                                participant.actor.reference}
+                            </option>
+                          )}
                         {practitionerOptions.map((option) => (
                           <option
                             key={option.reference}
@@ -1309,6 +1671,15 @@ const EncounterCrudPage: React.FC = () => {
                           </option>
                         ))}
                       </select>
+                      {participant.actor?.reference &&
+                        !practitionerOptions.some(
+                          (opt) =>
+                            opt.reference === participant.actor?.reference,
+                        ) && (
+                          <p className="text-xs text-yellow-600 mt-1">
+                            Loading practitioner data...
+                          </p>
+                        )}
                     </div>
 
                     {/* Period start field */}
@@ -1370,42 +1741,20 @@ const EncounterCrudPage: React.FC = () => {
           {group.id === 'reason' && (
             <>
               <div>
-                <label
-                  htmlFor="reasonCode.0.coding.0.display"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <p className="text-sm font-medium text-gray-700 mb-1">
                   Reason Code
-                </label>
-                <input
-                  type="text"
-                  name="reasonCode.0.coding.0.display"
-                  id="reasonCode.0.coding.0.display"
-                  value={formData.reasonCode?.[0]?.coding?.[0]?.display || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
+                </p>
+                <p className="text-gray-900">
+                  {formData.reasonCode?.[0]?.coding?.[0]?.display || '-'}
+                </p>
               </div>
               <div>
-                <label
-                  htmlFor="reasonReference.0.reference"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <p className="text-sm font-medium text-gray-700 mb-1">
                   Reason Reference
-                </label>
-                <select
-                  name="reasonReference.0.reference"
-                  id="reasonReference.0.reference"
-                  value={formData.reasonReference?.[0]?.reference || ''}
-                  onChange={handleReferenceChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a reason reference</option>
-                  {conditionOptions.map((option) => (
-                    <option key={option.reference} value={option.reference}>
-                      {option.display}
-                    </option>
-                  ))}
-                </select>
+                </p>
+                <p className="text-gray-900">
+                  {formData.reasonReference?.[0]?.display || '-'}
+                </p>
               </div>
             </>
           )}
@@ -1528,8 +1877,14 @@ const EncounterCrudPage: React.FC = () => {
           </h2>
           <p className="text-gray-600">
             {!resourceId
-              ? `Creating new encounter for ${patient?.name?.[0]?.given?.[0]} ${patient?.name?.[0]?.family}`
-              : `Encounter for ${patient?.name?.[0]?.given?.[0]} ${patient?.name?.[0]?.family}`}
+              ? getPatientDisplayName(patient)
+                ? `Creating new encounter for ${getPatientDisplayName(patient)}`
+                : 'Creating new encounter'
+              : formData?.subject?.display
+              ? `Encounter for ${formData.subject.display}`
+              : getPatientDisplayName(patient)
+              ? `Encounter for ${getPatientDisplayName(patient)}`
+              : 'Encounter details'}
           </p>
         </div>
 
@@ -1585,27 +1940,16 @@ const EncounterCrudPage: React.FC = () => {
           {formGroups.map(renderEditGroup)}
 
           {/* Form Actions */}
-          <div className="flex justify-between pt-4 border-t border-gray-200">
+          <div className="flex justify-between pt-4">
             <div>
-              {resourceId && isEditMode ? (
-                <button
-                  type="button"
-                  onClick={() => setIsEditMode(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  Cancel Editing
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/patient/${patientId}/encounter`)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              )}
-
-              {resourceId && isEditMode && (
+              <button
+                type="button"
+                onClick={() => navigate(`/patient/${patientId}/encounter`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Back
+              </button>
+              {resourceId && (
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -1616,7 +1960,6 @@ const EncounterCrudPage: React.FC = () => {
                 </button>
               )}
             </div>
-
             <button
               type="submit"
               disabled={isCreating || isUpdating}
@@ -1625,7 +1968,7 @@ const EncounterCrudPage: React.FC = () => {
               {isCreating || isUpdating
                 ? 'Saving...'
                 : resourceId
-                ? 'Update Encounter'
+                ? 'Save Changes'
                 : 'Create Encounter'}
             </button>
           </div>
@@ -1633,6 +1976,28 @@ const EncounterCrudPage: React.FC = () => {
       )}
     </div>
   );
+};
+
+// Helper function to get patient display name prioritizing HumanName.text
+const getPatientDisplayName = (patient: any): string => {
+  if (!patient || !patient.name || !patient.name.length) {
+    return '';
+  }
+
+  // First check if HumanName.text is available
+  if (patient.name[0].text) {
+    return patient.name[0].text;
+  }
+
+  // Otherwise concatenate given and family name
+  const given = patient.name[0].given ? patient.name[0].given[0] || '' : '';
+  const family = patient.name[0].family || '';
+
+  if (given || family) {
+    return `${given} ${family}`.trim();
+  }
+
+  return '';
 };
 
 export default EncounterCrudPage;

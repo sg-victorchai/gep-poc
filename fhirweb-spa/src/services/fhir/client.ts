@@ -58,10 +58,19 @@ export const fhirApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: '/', // Will be overridden in queryFn
   }),
-  tagTypes: ['Patient', 'CarePlan', 'Observation', 'MedicationRequest', 'Encounter'],
+  tagTypes: [
+    'Patient',
+    'CarePlan',
+    'Observation',
+    'MedicationRequest',
+    'Encounter',
+    'Practitioner',
+    'Organization',
+    'Condition',
+  ],
   endpoints: (builder) => ({
     getPatient: builder.query<Patient, string>({
-      queryFn: async (patientId, { signal }) => {
+      queryFn: async (patientId, _apiState) => {
         try {
           const client = createFHIRClient();
           const patient = await client.read({
@@ -78,7 +87,7 @@ export const fhirApi = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Patient', id }],
     }),
     searchPatients: builder.query<Bundle<Patient>, Record<string, string>>({
-      queryFn: async (searchParams, { signal }) => {
+      queryFn: async (searchParams, _apiState) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -95,7 +104,7 @@ export const fhirApi = createApi({
       providesTags: ['Patient'],
     }),
     getCarePlans: builder.query<Bundle<CarePlan>, string>({
-      queryFn: async (patientId, { signal }) => {
+      queryFn: async (patientId, _apiState) => {
         try {
           const client = createFHIRClient();
           const results = await client.search({
@@ -119,7 +128,7 @@ export const fhirApi = createApi({
       Bundle<Observation>,
       { patientId: string; code?: string; date?: string }
     >({
-      queryFn: async ({ patientId, code, date }, { signal }) => {
+      queryFn: async ({ patientId, code, date }, _api) => {
         try {
           const client = createFHIRClient();
           const searchParams: Record<string, string> = {
@@ -323,6 +332,99 @@ export const fhirApi = createApi({
         { type: resourceType as any, id },
       ],
     }),
+    // New endpoints for reference options
+    getPractitioners: builder.query<
+      Bundle<Resource>,
+      { searchParams?: Record<string, string> }
+    >({
+      queryFn: async (
+        { searchParams = { _count: '100', _sort: 'family' } },
+        { signal },
+      ) => {
+        try {
+          const client = createFHIRClient();
+          const results = await client.search({
+            resourceType: 'Practitioner',
+            searchParams,
+          });
+          return { data: results as Bundle<Resource> };
+        } catch (error) {
+          return {
+            error: { status: 'FETCH_ERROR', error: String(error) },
+          };
+        }
+      },
+      providesTags: ['Practitioner'],
+    }),
+    getOrganizations: builder.query<
+      Bundle<Resource>,
+      { searchParams?: Record<string, string> }
+    >({
+      queryFn: async (
+        { searchParams = { _count: '100', _sort: 'name' } },
+        { signal },
+      ) => {
+        try {
+          const client = createFHIRClient();
+          const results = await client.search({
+            resourceType: 'Organization',
+            searchParams,
+          });
+          return { data: results as Bundle<Resource> };
+        } catch (error) {
+          return {
+            error: { status: 'FETCH_ERROR', error: String(error) },
+          };
+        }
+      },
+      providesTags: ['Organization'],
+    }),
+    getConditions: builder.query<
+      Bundle<Resource>,
+      { patientId: string; searchParams?: Record<string, string> }
+    >({
+      queryFn: async (
+        { patientId, searchParams = { _count: '100' } },
+        { signal },
+      ) => {
+        try {
+          const client = createFHIRClient();
+          const results = await client.search({
+            resourceType: 'Condition',
+            searchParams: {
+              patient: patientId,
+              ...searchParams,
+            },
+          });
+          return { data: results as Bundle<Resource> };
+        } catch (error) {
+          return {
+            error: { status: 'FETCH_ERROR', error: String(error) },
+          };
+        }
+      },
+      providesTags: (_result, _error, { patientId }) => [
+        { type: 'Condition', id: patientId },
+      ],
+    }),
+    // Function to get a single practitioner by ID
+    getPractitionerById: builder.query<Resource, string>({
+      queryFn: async (id, { signal }) => {
+        try {
+          const client = createFHIRClient();
+          const resource = await client.read({
+            resourceType: 'Practitioner',
+            id,
+          });
+          return { data: resource as Resource };
+        } catch (error) {
+          return {
+            error: { status: 'FETCH_ERROR', error: String(error) },
+          };
+        }
+      },
+      providesTags: (_result, _error, id) => [{ type: 'Practitioner', id }],
+    }),
   }),
 });
 
@@ -339,4 +441,9 @@ export const {
   useUpdateResourceMutation,
   useDeleteResourceMutation,
   useGetResourceByIdQuery,
+  // Export new hooks
+  useGetPractitionersQuery,
+  useGetOrganizationsQuery,
+  useGetConditionsQuery,
+  useGetPractitionerByIdQuery,
 } = fhirApi;
