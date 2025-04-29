@@ -77,12 +77,138 @@ const PARTICIPANT_TYPE_OPTIONS: CodingOption[] = [
   },
 ];
 
+// Common reason code options for CodeableConcept
+const REASON_CODE_OPTIONS: CodingOption[] = [
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/reason-medication-given',
+    code: 'a',
+    display: 'For procedure',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/reason-medication-given',
+    code: 'b',
+    display: 'For clinical assessment',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '410429000',
+    display: 'Cardiac Arrest',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '418138009',
+    display: 'Annual check-up',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '185345009',
+    display: 'Follow-up encounter',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '270427003',
+    display: 'Patient-initiated encounter',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '11429006',
+    display: 'Consultation',
+  },
+  {
+    system: 'http://snomed.info/sct',
+    code: '183460006',
+    display: 'Telephone encounter',
+  },
+];
+
+// Location form options
+const LOCATION_STATUS_OPTIONS = [
+  { code: 'planned', display: 'Planned' },
+  { code: 'active', display: 'Active' },
+  { code: 'reserved', display: 'Reserved' },
+  { code: 'completed', display: 'Completed' },
+];
+
+const LOCATION_FORM_OPTIONS = [
+  {
+    code: 'bd',
+    display: 'Bed',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'ro',
+    display: 'Room',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'wa',
+    display: 'Ward',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'lvl',
+    display: 'Level',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'site',
+    display: 'Site',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 've',
+    display: 'Vehicle',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'ho',
+    display: 'House',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'ca',
+    display: 'Cabinet',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'rd',
+    display: 'Road',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'area',
+    display: 'Area',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'jdn',
+    display: 'Jurisdiction',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+  {
+    code: 'virtual',
+    display: 'Virtual',
+    system: 'http://terminology.hl7.org/CodeSystem/location-physical-type',
+  },
+];
+
 // Interface for encounter location to enforce required 'location' property
 interface EncounterLocation {
   status?: string;
   location: {
     display?: string;
     reference?: string;
+  };
+  form?: {
+    coding?: Array<{
+      system?: string;
+      code?: string;
+      display?: string;
+    }>;
+  };
+  period?: {
+    start?: string;
+    end?: string;
   };
 }
 
@@ -151,8 +277,8 @@ interface CustomEncounter {
   }>;
   reasonCode?: Array<{
     coding: Array<{
-      system: string;
-      code: string;
+      system?: string;
+      code?: string;
       display?: string;
     }>;
     text?: string;
@@ -162,7 +288,33 @@ interface CustomEncounter {
     display: string;
   }>;
   hospitalization?: {
+    preAdmissionIdentifier?: {
+      value?: string;
+      system?: string;
+    };
+    origin?: {
+      reference?: string;
+      display?: string;
+    };
     admitSource?: {
+      coding: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+    };
+    reAdmission?: {
+      coding: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+      }>;
+    };
+    destination?: {
+      reference?: string;
+      display?: string;
+    };
+    dischargeDisposition?: {
       coding: Array<{
         system?: string;
         code?: string;
@@ -779,6 +931,287 @@ const EncounterCrudPage: React.FC = () => {
     return '';
   };
 
+  // Function to handle reason code selection
+  const handleReasonCodeChange = (code: string) => {
+    const selectedOption = REASON_CODE_OPTIONS.find(
+      (option) => option.code === code,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      reasonCode: [
+        {
+          text: selectedOption?.display || '',
+          coding: [
+            {
+              system: selectedOption?.system || 'http://snomed.info/sct',
+              code: code,
+              display: selectedOption?.display || '',
+            },
+          ],
+        },
+      ],
+    }));
+  };
+
+  // Function to add a reasonCode with empty defaults
+  const addReasonCode = () => {
+    setFormData((prev) => ({
+      ...prev,
+      reasonCode: [
+        {
+          text: '',
+          coding: [
+            {
+              system: 'http://snomed.info/sct',
+              code: '',
+              display: '',
+            },
+          ],
+        },
+      ],
+    }));
+  };
+
+  // This function is used in the view mode to display reason code text
+  const getReasonCodeText = () => {
+    if (formData.reasonCode && formData.reasonCode.length > 0) {
+      if (
+        formData.reasonCode[0].text &&
+        formData.reasonCode[0].text.trim() !== ''
+      ) {
+        return formData.reasonCode[0].text;
+      } else if (
+        formData.reasonCode[0].coding &&
+        formData.reasonCode[0].coding.length > 0 &&
+        formData.reasonCode[0].coding[0].display
+      ) {
+        return formData.reasonCode[0].coding[0].display;
+      }
+    }
+    return '';
+  };
+
+  // Function to handle location form type selection
+  const handleLocationFormChange = (index: number, code: string) => {
+    const selectedOption = LOCATION_FORM_OPTIONS.find(
+      (option) => option.code === code,
+    );
+
+    setFormData((prev) => {
+      const updatedLocations = [...(prev.location || [])];
+
+      if (!updatedLocations[index]) {
+        updatedLocations[index] = {
+          location: { display: '' },
+        };
+      }
+
+      // Add the form field with proper coding structure if it doesn't exist yet
+      updatedLocations[index] = {
+        ...updatedLocations[index],
+        form: {
+          coding: [
+            {
+              system:
+                selectedOption?.system ||
+                'http://terminology.hl7.org/CodeSystem/location-physical-type',
+              code: code,
+              display: selectedOption?.display || '',
+            },
+          ],
+        },
+      };
+
+      return {
+        ...prev,
+        location: updatedLocations,
+      };
+    });
+  };
+
+  // Admission source options
+  const ADMIT_SOURCE_OPTIONS = [
+    {
+      code: 'hosp-trans',
+      display: 'Transferred from other hospital',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'emd',
+      display: 'From emergency department',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'outp',
+      display: 'From outpatient department',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'born',
+      display: 'Born in hospital',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'gp',
+      display: 'General Practitioner referral',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'mp',
+      display: 'Medical Practitioner/physician referral',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'nursing',
+      display: 'From nursing home',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'psych',
+      display: 'From psychiatric hospital',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'rehab',
+      display: 'From rehabilitation facility',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+    {
+      code: 'other',
+      display: 'Other',
+      system: 'http://terminology.hl7.org/CodeSystem/admit-source',
+    },
+  ];
+
+  // Re-admission options
+  const READMISSION_OPTIONS = [
+    {
+      code: 'R',
+      display: 'Re-admission',
+      system: 'http://terminology.hl7.org/CodeSystem/v2-0092',
+    },
+    {
+      code: 'UR',
+      display: 'Unscheduled re-admission',
+      system: 'http://terminology.hl7.org/CodeSystem/v2-0092',
+    },
+  ];
+
+  // Discharge disposition options
+  const DISCHARGE_DISPOSITION_OPTIONS = [
+    {
+      code: 'home',
+      display: 'Home',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'alt-home',
+      display: 'Alternative home',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'other-hcf',
+      display: 'Other healthcare facility',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'hosp',
+      display: 'Hospice',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'long',
+      display: 'Long-term care',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'snf',
+      display: 'Skilled nursing facility',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+    {
+      code: 'oth',
+      display: 'Other',
+      system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+    },
+  ];
+
+  // Function to handle admission source selection
+  const handleAdmitSourceChange = (code: string) => {
+    const selectedOption = ADMIT_SOURCE_OPTIONS.find(
+      (option) => option.code === code,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        admitSource: {
+          coding: [
+            {
+              system:
+                selectedOption?.system ||
+                'http://terminology.hl7.org/CodeSystem/admit-source',
+              code: code,
+              display: selectedOption?.display || '',
+            },
+          ],
+        },
+      },
+    }));
+  };
+
+  // Function to handle discharge disposition selection
+  const handleDischargeDispositionChange = (code: string) => {
+    const selectedOption = DISCHARGE_DISPOSITION_OPTIONS.find(
+      (option) => option.code === code,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        dischargeDisposition: {
+          coding: [
+            {
+              system:
+                selectedOption?.system ||
+                'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+              code: code,
+              display: selectedOption?.display || '',
+            },
+          ],
+        },
+      },
+    }));
+  };
+
+  // Function to handle readmission selection
+  const handleReadmissionChange = (code: string) => {
+    const selectedOption = READMISSION_OPTIONS.find(
+      (option) => option.code === code,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        reAdmission: {
+          coding: [
+            {
+              system:
+                selectedOption?.system ||
+                'http://terminology.hl7.org/CodeSystem/v2-0092',
+              code: code,
+              display: selectedOption?.display || '',
+            },
+          ],
+        },
+      },
+    }));
+  };
+
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1229,67 +1662,432 @@ const EncounterCrudPage: React.FC = () => {
           )}
 
           {group.id === 'reason' && (
-            <>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Reason Code
-                </p>
-                <p className="text-gray-900">
-                  {formData.reasonCode?.[0]?.coding?.[0]?.display || '-'}
-                </p>
+            <div className="sm:col-span-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* Reason Code - Similar to Participant Type */}
+                <div>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason Code
+                    </label>
+                    {!formData.reasonCode?.length && (
+                      <button
+                        type="button"
+                        onClick={addReasonCode}
+                        className="px-2 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 focus:outline-none"
+                      >
+                        Add Reason
+                      </button>
+                    )}
+                  </div>
+
+                  {formData.reasonCode && formData.reasonCode.length > 0 ? (
+                    <>
+                      <input
+                        type="text"
+                        name="reasonCode.0.text"
+                        id="reasonCode.0.text"
+                        value={formData.reasonCode[0].text || ''}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            reasonCode: [
+                              {
+                                ...prev.reasonCode?.[0],
+                                text: e.target.value,
+                                coding: [
+                                  {
+                                    system:
+                                      prev.reasonCode?.[0]?.coding?.[0]
+                                        ?.system || 'http://snomed.info/sct',
+                                    code:
+                                      prev.reasonCode?.[0]?.coding?.[0]?.code ||
+                                      '',
+                                    display: e.target.value,
+                                  },
+                                ],
+                              },
+                            ],
+                          }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
+                        placeholder="Custom reason description"
+                      />
+
+                      <select
+                        value={formData.reasonCode[0]?.coding?.[0]?.code || ''}
+                        onChange={(e) => handleReasonCodeChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        aria-label="Select a reason code"
+                      >
+                        <option value="">Select reason code</option>
+                        {REASON_CODE_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      No reason code added.
+                    </p>
+                  )}
+                </div>
+
+                {/* Reason Reference - Similar to Actor */}
+                <div>
+                  <label
+                    htmlFor="reasonReference.0.reference"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Reason Reference
+                  </label>
+                  <select
+                    name="reasonReference.0.reference"
+                    id="reasonReference.0.reference"
+                    value={formData.reasonReference?.[0]?.reference || ''}
+                    onChange={handleReferenceChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select a reason reference</option>
+                    {conditionOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Reason Reference
-                </p>
-                <p className="text-gray-900">
-                  {formData.reasonReference?.[0]?.display || '-'}
-                </p>
-              </div>
-            </>
+            </div>
           )}
 
           {group.id === 'location' && (
             <div className="sm:col-span-2">
-              <p className="text-sm font-medium text-gray-700 mb-1">
-                Locations
-              </p>
-              {formData.location && formData.location.length > 0 ? (
-                <div className="space-y-2">
-                  {formData.location.map((location, index) => (
-                    <div
-                      key={index}
-                      className="pl-3 border-l-2 border-gray-200"
-                    >
-                      <p className="text-gray-900">
-                        {location.location?.display || '-'}
-                        {location.status && (
-                          <span className="text-gray-500">
-                            {' '}
-                            ({location.status})
-                          </span>
-                        )}
-                      </p>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Locations
+                </label>
+                <button
+                  type="button"
+                  onClick={addLocation}
+                  className="px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Add Location
+                </button>
+              </div>
+
+              {(formData.location || []).map((location, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 p-3 rounded-md mb-3"
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* Location name/description */}
+                    <div>
+                      <label
+                        htmlFor={`location.${index}.location.display`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Location Name/Description *
+                      </label>
+                      <input
+                        type="text"
+                        name={`location.${index}.location.display`}
+                        id={`location.${index}.location.display`}
+                        value={location.location?.display || ''}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="E.g., Emergency Room, Ward A, etc."
+                        required
+                      />
                     </div>
-                  ))}
+
+                    {/* Location status */}
+                    <div>
+                      <label
+                        htmlFor={`location.${index}.status`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Status
+                      </label>
+                      <select
+                        name={`location.${index}.status`}
+                        id={`location.${index}.status`}
+                        value={location.status || 'active'}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {LOCATION_STATUS_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Location form (physical type) */}
+                    <div>
+                      <label
+                        id={`location-${index}-form-label`}
+                        htmlFor={`location.${index}.form`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Physical Type
+                      </label>
+                      <select
+                        id={`location.${index}.form`}
+                        aria-labelledby={`location-${index}-form-label`}
+                        value={location.form?.coding?.[0]?.code || ''}
+                        onChange={(e) =>
+                          handleLocationFormChange(index, e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select location type</option>
+                        {LOCATION_FORM_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Location period */}
+                    <div>
+                      <label
+                        htmlFor={`location.${index}.period.start`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Start Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name={`location.${index}.period.start`}
+                        id={`location.${index}.period.start`}
+                        value={formatDateForInput(location.period?.start)}
+                        onChange={handleChange}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md mb-2"
+                      />
+
+                      <label
+                        htmlFor={`location.${index}.period.end`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        End Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name={`location.${index}.period.end`}
+                        id={`location.${index}.period.end`}
+                        value={formatDateForInput(location.period?.end)}
+                        onChange={handleChange}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeLocation(index)}
+                      className="px-2 py-1 text-xs font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 focus:outline-none"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              ) : (
+              ))}
+
+              {!formData.location?.length && (
                 <p className="text-sm text-gray-500 italic">
-                  No locations added.
+                  No locations added yet.
                 </p>
               )}
             </div>
           )}
 
           {group.id === 'admission' && (
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-1">
-                Admission Details
-              </p>
-              <p className="text-gray-900">
-                {formData.hospitalization?.admitSource?.coding?.[0]?.display ||
-                  '-'}
-              </p>
+            <div className="sm:col-span-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Pre-admission identifier */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.preAdmissionIdentifier.value"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Pre-admission Identifier
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.preAdmissionIdentifier.value"
+                    id="hospitalization.preAdmissionIdentifier.value"
+                    value={
+                      formData.hospitalization?.preAdmissionIdentifier?.value ||
+                      ''
+                    }
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          preAdmissionIdentifier: {
+                            ...prev.hospitalization?.preAdmissionIdentifier,
+                            value: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Pre-admission ID"
+                  />
+                </div>
+
+                {/* Origin */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.origin.display"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Origin (Location/Organization)
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.origin.display"
+                    id="hospitalization.origin.display"
+                    value={formData.hospitalization?.origin?.display || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          origin: {
+                            ...prev.hospitalization?.origin,
+                            display: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Location patient came from"
+                  />
+                </div>
+
+                {/* Admit Source */}
+                <div>
+                  <label
+                    id="admit-source-label"
+                    htmlFor="hospitalization.admitSource"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Admit Source
+                  </label>
+                  <select
+                    id="hospitalization.admitSource"
+                    aria-labelledby="admit-source-label"
+                    value={
+                      formData.hospitalization?.admitSource?.coding?.[0]
+                        ?.code || ''
+                    }
+                    onChange={(e) => handleAdmitSourceChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select admit source</option>
+                    {ADMIT_SOURCE_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Re-admission */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.reAdmission"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Re-admission
+                  </label>
+                  <select
+                    id="hospitalization.reAdmission"
+                    value={
+                      formData.hospitalization?.reAdmission?.coding?.[0]
+                        ?.code || ''
+                    }
+                    onChange={(e) => handleReadmissionChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Not a re-admission</option>
+                    {READMISSION_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Destination */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.destination.display"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Destination
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.destination.display"
+                    id="hospitalization.destination.display"
+                    value={formData.hospitalization?.destination?.display || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          destination: {
+                            ...prev.hospitalization?.destination,
+                            display: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Discharge destination"
+                  />
+                </div>
+
+                {/* Discharge Disposition */}
+                <div>
+                  <label
+                    id="discharge-disposition-label"
+                    htmlFor="hospitalization.dischargeDisposition"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Discharge Disposition
+                  </label>
+                  <select
+                    id="hospitalization.dischargeDisposition"
+                    name="hospitalization.dischargeDisposition"
+                    aria-labelledby="discharge-disposition-label"
+                    aria-label="Discharge Disposition"
+                    value={
+                      formData.hospitalization?.dischargeDisposition
+                        ?.coding?.[0]?.code || ''
+                    }
+                    onChange={(e) =>
+                      handleDischargeDispositionChange(e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select discharge disposition</option>
+                    {DISCHARGE_DISPOSITION_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1330,6 +2128,7 @@ const EncounterCrudPage: React.FC = () => {
               </div>
               <div>
                 <label
+                  id="status-label"
                   htmlFor="status"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
@@ -1338,6 +2137,7 @@ const EncounterCrudPage: React.FC = () => {
                 <select
                   id="status"
                   name="status"
+                  aria-labelledby="status-label"
                   value={formData.status || ''}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -1739,24 +2539,106 @@ const EncounterCrudPage: React.FC = () => {
           )}
 
           {group.id === 'reason' && (
-            <>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Reason Code
-                </p>
-                <p className="text-gray-900">
-                  {formData.reasonCode?.[0]?.coding?.[0]?.display || '-'}
-                </p>
+            <div className="sm:col-span-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* Reason Code - Similar to Participant Type */}
+                <div>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason Code
+                    </label>
+                    {!formData.reasonCode?.length && (
+                      <button
+                        type="button"
+                        onClick={addReasonCode}
+                        className="px-2 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 focus:outline-none"
+                      >
+                        Add Reason
+                      </button>
+                    )}
+                  </div>
+
+                  {formData.reasonCode && formData.reasonCode.length > 0 ? (
+                    <>
+                      <input
+                        type="text"
+                        name="reasonCode.0.text"
+                        id="reasonCode.0.text"
+                        value={formData.reasonCode[0].text || ''}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            reasonCode: [
+                              {
+                                ...prev.reasonCode?.[0],
+                                text: e.target.value,
+                                coding: [
+                                  {
+                                    system:
+                                      prev.reasonCode?.[0]?.coding?.[0]
+                                        ?.system || 'http://snomed.info/sct',
+                                    code:
+                                      prev.reasonCode?.[0]?.coding?.[0]?.code ||
+                                      '',
+                                    display: e.target.value,
+                                  },
+                                ],
+                              },
+                            ],
+                          }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
+                        placeholder="Custom reason description"
+                      />
+
+                      <select
+                        id="reasonCode.0.coding.0.code"
+                        name="reasonCode.0.coding.0.code"
+                        aria-label="Select a reason code"
+                        value={formData.reasonCode[0]?.coding?.[0]?.code || ''}
+                        onChange={(e) => handleReasonCodeChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select reason code</option>
+                        {REASON_CODE_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      No reason code added.
+                    </p>
+                  )}
+                </div>
+
+                {/* Reason Reference - Similar to Actor */}
+                <div>
+                  <label
+                    htmlFor="reasonReference.0.reference"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Reason Reference
+                  </label>
+                  <select
+                    name="reasonReference.0.reference"
+                    id="reasonReference.0.reference"
+                    value={formData.reasonReference?.[0]?.reference || ''}
+                    onChange={handleReferenceChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select a reason reference</option>
+                    {conditionOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Reason Reference
-                </p>
-                <p className="text-gray-900">
-                  {formData.reasonReference?.[0]?.display || '-'}
-                </p>
-              </div>
-            </>
+            </div>
           )}
 
           {group.id === 'location' && (
@@ -1780,12 +2662,13 @@ const EncounterCrudPage: React.FC = () => {
                   className="border border-gray-200 p-3 rounded-md mb-3"
                 >
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* Location name/description */}
                     <div>
                       <label
                         htmlFor={`location.${index}.location.display`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Location Name
+                        Location Name/Description *
                       </label>
                       <input
                         type="text"
@@ -1794,8 +2677,12 @@ const EncounterCrudPage: React.FC = () => {
                         value={location.location?.display || ''}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="E.g., Emergency Room, Ward A, etc."
+                        required
                       />
                     </div>
+
+                    {/* Location status */}
                     <div>
                       <label
                         htmlFor={`location.${index}.status`}
@@ -1810,11 +2697,70 @@ const EncounterCrudPage: React.FC = () => {
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="active">Active</option>
-                        <option value="planned">Planned</option>
-                        <option value="reserved">Reserved</option>
-                        <option value="completed">Completed</option>
+                        {LOCATION_STATUS_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
                       </select>
+                    </div>
+
+                    {/* Location form (physical type) */}
+                    <div>
+                      <label
+                        htmlFor={`location.${index}.form`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Physical Type
+                      </label>
+                      <select
+                        id={`location.${index}.form`}
+                        value={location.form?.coding?.[0]?.code || ''}
+                        onChange={(e) =>
+                          handleLocationFormChange(index, e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select location type</option>
+                        {LOCATION_FORM_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Location period */}
+                    <div>
+                      <label
+                        htmlFor={`location.${index}.period.start`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Start Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name={`location.${index}.period.start`}
+                        id={`location.${index}.period.start`}
+                        value={formatDateForInput(location.period?.start)}
+                        onChange={handleChange}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md mb-2"
+                      />
+
+                      <label
+                        htmlFor={`location.${index}.period.end`}
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        End Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name={`location.${index}.period.end`}
+                        id={`location.${index}.period.end`}
+                        value={formatDateForInput(location.period?.end)}
+                        onChange={handleChange}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      />
                     </div>
                   </div>
                   <div className="mt-2 flex justify-end">
@@ -1839,24 +2785,183 @@ const EncounterCrudPage: React.FC = () => {
 
           {group.id === 'admission' && (
             <div className="sm:col-span-2">
-              <label
-                htmlFor="hospitalization.admitSource.coding.0.display"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Admission Source
-              </label>
-              <input
-                type="text"
-                name="hospitalization.admitSource.coding.0.display"
-                id="hospitalization.admitSource.coding.0.display"
-                value={
-                  formData.hospitalization?.admitSource?.coding?.[0]?.display ||
-                  ''
-                }
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter admission source"
-              />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Pre-admission identifier */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.preAdmissionIdentifier.value"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Pre-admission Identifier
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.preAdmissionIdentifier.value"
+                    id="hospitalization.preAdmissionIdentifier.value"
+                    value={
+                      formData.hospitalization?.preAdmissionIdentifier?.value ||
+                      ''
+                    }
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          preAdmissionIdentifier: {
+                            ...prev.hospitalization?.preAdmissionIdentifier,
+                            value: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Pre-admission ID"
+                  />
+                </div>
+
+                {/* Origin */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.origin.display"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Origin (Location/Organization)
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.origin.display"
+                    id="hospitalization.origin.display"
+                    value={formData.hospitalization?.origin?.display || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          origin: {
+                            ...prev.hospitalization?.origin,
+                            display: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Location patient came from"
+                  />
+                </div>
+
+                {/* Admit Source */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.admitSource"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Admit Source
+                  </label>
+                  <select
+                    id="hospitalization.admitSource"
+                    value={
+                      formData.hospitalization?.admitSource?.coding?.[0]
+                        ?.code || ''
+                    }
+                    onChange={(e) => handleAdmitSourceChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select admit source</option>
+                    {ADMIT_SOURCE_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Re-admission */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.reAdmission"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Re-admission
+                  </label>
+                  <select
+                    id="hospitalization.reAdmission"
+                    value={
+                      formData.hospitalization?.reAdmission?.coding?.[0]
+                        ?.code || ''
+                    }
+                    onChange={(e) => handleReadmissionChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Not a re-admission</option>
+                    {READMISSION_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Destination */}
+                <div>
+                  <label
+                    htmlFor="hospitalization.destination.display"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Destination
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalization.destination.display"
+                    id="hospitalization.destination.display"
+                    value={formData.hospitalization?.destination?.display || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        hospitalization: {
+                          ...prev.hospitalization,
+                          destination: {
+                            ...prev.hospitalization?.destination,
+                            display: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Discharge destination"
+                  />
+                </div>
+
+                {/* Discharge Disposition */}
+                <div>
+                  <label
+                    id="discharge-disposition-label"
+                    htmlFor="hospitalization.dischargeDisposition"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Discharge Disposition
+                  </label>
+                  <select
+                    id="hospitalization.dischargeDisposition"
+                    name="hospitalization.dischargeDisposition"
+                    aria-labelledby="discharge-disposition-label"
+                    value={
+                      formData.hospitalization?.dischargeDisposition
+                        ?.coding?.[0]?.code || ''
+                    }
+                    onChange={(e) =>
+                      handleDischargeDispositionChange(e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select discharge disposition</option>
+                    {DISCHARGE_DISPOSITION_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
         </div>
