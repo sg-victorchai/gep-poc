@@ -67,6 +67,7 @@ export const fhirApi = createApi({
     'Practitioner',
     'Organization',
     'Condition',
+    'Location',
   ],
   endpoints: (builder) => ({
     getPatient: builder.query<Patient, string>({
@@ -418,6 +419,26 @@ export const fhirApi = createApi({
       },
       providesTags: (_result, _error, id) => [{ type: 'Practitioner', id }],
     }),
+    getLocations: builder.query<
+      Bundle<Resource>,
+      { searchParams?: Record<string, string> }
+    >({
+      queryFn: async ({ searchParams = { _count: '100', _sort: 'name' } }) => {
+        try {
+          const client = createFHIRClient();
+          const results = await client.search({
+            resourceType: 'Location',
+            searchParams,
+          });
+          return { data: results as Bundle<Resource> };
+        } catch (error) {
+          return {
+            error: { status: 'FETCH_ERROR', error: String(error) },
+          };
+        }
+      },
+      providesTags: ['Location'],
+    }),
   }),
 });
 
@@ -439,4 +460,5 @@ export const {
   useGetOrganizationsQuery,
   useGetConditionsQuery,
   useGetPractitionerByIdQuery,
+  useGetLocationsQuery,
 } = fhirApi;

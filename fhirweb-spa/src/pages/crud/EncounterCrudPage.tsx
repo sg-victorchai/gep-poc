@@ -9,6 +9,7 @@ import {
   useGetOrganizationsQuery,
   useGetConditionsQuery,
   useGetPractitionerByIdQuery,
+  useGetLocationsQuery,
 } from '../../services/fhir/client';
 import { Encounter, Practitioner } from 'fhir/r5';
 
@@ -192,12 +193,104 @@ const LOCATION_FORM_OPTIONS = [
   },
 ];
 
+// Identifier system options
+const IDENTIFIER_SYSTEM_OPTIONS = [
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+    code: 'MR',
+    display: 'Medical Record Number',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+    code: 'VN',
+    display: 'Visit Number',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+    code: 'PRN',
+    display: 'Provider Number',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+    code: 'FN',
+    display: 'Facility Number',
+  },
+  {
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+    code: 'PI',
+    display: 'Patient Internal Identifier',
+  },
+  {
+    system: 'http://hospital.smarthealthit.org',
+    code: 'MRN',
+    display: 'Hospital MRN',
+  },
+  {
+    system: 'http://example.org/identifier/pre-admission',
+    code: 'PAI',
+    display: 'Pre-Admission Identifier',
+  },
+];
+
+// Re-admission options
+const READMISSION_OPTIONS = [
+  {
+    code: 'R',
+    display: 'Re-admission',
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0092',
+  },
+  {
+    code: 'UR',
+    display: 'Unscheduled re-admission',
+    system: 'http://terminology.hl7.org/CodeSystem/v2-0092',
+  },
+];
+
+// Discharge disposition options
+const DISCHARGE_DISPOSITION_OPTIONS = [
+  {
+    code: 'home',
+    display: 'Home',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'alt-home',
+    display: 'Alternative home',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'other-hcf',
+    display: 'Other healthcare facility',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'hosp',
+    display: 'Hospice',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'long',
+    display: 'Long-term care',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'snf',
+    display: 'Skilled nursing facility',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+  {
+    code: 'oth',
+    display: 'Other',
+    system: 'http://terminology.hl7.org/CodeSystem/discharge-disposition',
+  },
+];
+
 // Interface for encounter location to enforce required 'location' property
 interface EncounterLocation {
-  status?: string;
+  status?: 'planned' | 'active' | 'reserved' | 'completed';
   location: {
-    display?: string;
     reference?: string;
+    display: string;
   };
   form?: {
     coding?: Array<{
@@ -205,6 +298,7 @@ interface EncounterLocation {
       code?: string;
       display?: string;
     }>;
+    text?: string;
   };
   period?: {
     start?: string;
@@ -212,38 +306,7 @@ interface EncounterLocation {
   };
 }
 
-// Define our own custom Encounter type to avoid FHIR R5 compatibility issues
-interface CustomEncounter {
-  resourceType: string;
-  id?: string;
-  status?: string;
-  class?: Array<{
-    coding?: Array<{
-      system?: string;
-      code?: string;
-      display?: string;
-    }>;
-  }>;
-  subject?: {
-    reference?: string;
-    display?: string;
-  };
-  actualPeriod?: {
-    start?: string;
-    end?: string;
-  };
-  serviceProvider?: {
-    reference?: string;
-    display?: string;
-  };
-  type?: Array<{
-    coding?: Array<{
-      system?: string;
-      code?: string;
-      display?: string;
-    }>;
-    text?: string;
-  }>;
+interface CustomEncounter extends Omit<Encounter, 'diagnosis'> {
   participant?: Array<{
     type?: Array<{
       coding?: Array<{
@@ -323,6 +386,10 @@ interface CustomEncounter {
     };
   };
   location?: EncounterLocation[];
+  actualPeriod?: {
+    start?: string;
+    end?: string;
+  };
 }
 
 const EncounterCrudPage: React.FC = () => {
@@ -432,6 +499,7 @@ const EncounterCrudPage: React.FC = () => {
   const [practitionerOptions, setPractitionerOptions] = useState<
     ReferenceOption[]
   >([]);
+  const [locationOptions, setLocationOptions] = useState<ReferenceOption[]>([]);
 
   // Fetch existing resource if editing
   const { data: existingResource, isLoading: isLoadingResource } =
@@ -453,6 +521,11 @@ const EncounterCrudPage: React.FC = () => {
 
   const { data: conditionsData } = useGetConditionsQuery(
     { patientId: patientId || '' },
+    { skip: !patientId },
+  );
+
+  const { data: locationsData } = useGetLocationsQuery(
+    { searchParams: { _count: '100', _sort: 'name' } },
     { skip: !patientId },
   );
 
@@ -510,7 +583,20 @@ const EncounterCrudPage: React.FC = () => {
         })),
       );
     }
-  }, [organizationsData, conditionsData, practitionersData]);
+
+    // Process location data
+    if (locationsData?.entry) {
+      setLocationOptions(
+        locationsData.entry.map((entry: any) => ({
+          reference: `Location/${entry.resource.id}`,
+          display:
+            entry.resource.name ||
+            entry.resource.description ||
+            'Unnamed Location',
+        })),
+      );
+    }
+  }, [organizationsData, conditionsData, practitionersData, locationsData]);
 
   // State to track missing practitioner IDs
   const [missingPractitionerIds, setMissingPractitionerIds] = useState<
@@ -872,6 +958,88 @@ const EncounterCrudPage: React.FC = () => {
     }
   };
 
+  // Add a handler for location reference select changes
+  const handleLocationReferenceChange = (index: number, value: string) => {
+    const selectedOption = locationOptions.find(
+      (option) => option.reference === value,
+    );
+
+    setFormData((prev) => {
+      const updatedLocations = [...(prev.location || [])];
+
+      if (!updatedLocations[index]) {
+        updatedLocations[index] = { location: { display: '' } };
+      }
+
+      updatedLocations[index] = {
+        ...updatedLocations[index],
+        location: {
+          reference: value,
+          display: selectedOption?.display || '',
+        },
+      };
+
+      return {
+        ...prev,
+        location: updatedLocations,
+      };
+    });
+  };
+
+  // Function to handle origin selection in hospitalization
+  const handleOriginReferenceChange = (value: string) => {
+    const selectedOption = locationOptions.find(
+      (option) => option.reference === value,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        origin: {
+          reference: value,
+          display: selectedOption?.display || '',
+        },
+      },
+    }));
+  };
+
+  // Function to handle destination selection in hospitalization
+  const handleDestinationReferenceChange = (value: string) => {
+    const selectedOption = locationOptions.find(
+      (option) => option.reference === value,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        destination: {
+          reference: value,
+          display: selectedOption?.display || '',
+        },
+      },
+    }));
+  };
+
+  // Function to handle pre-admission identifier system selection
+  const handlePreAdmissionSystemChange = (systemCode: string) => {
+    const selectedOption = IDENTIFIER_SYSTEM_OPTIONS.find(
+      (option) => option.code === systemCode,
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalization: {
+        ...prev.hospitalization,
+        preAdmissionIdentifier: {
+          ...prev.hospitalization?.preAdmissionIdentifier,
+          system: selectedOption?.system || '',
+        },
+      },
+    }));
+  };
+
   // Helper function to update nested fields
   const updateNestedField = (obj: any, path: string, value: any): any => {
     const parts = path.split('.');
@@ -974,23 +1142,7 @@ const EncounterCrudPage: React.FC = () => {
   };
 
   // This function is used in the view mode to display reason code text
-  const getReasonCodeText = () => {
-    if (formData.reasonCode && formData.reasonCode.length > 0) {
-      if (
-        formData.reasonCode[0].text &&
-        formData.reasonCode[0].text.trim() !== ''
-      ) {
-        return formData.reasonCode[0].text;
-      } else if (
-        formData.reasonCode[0].coding &&
-        formData.reasonCode[0].coding.length > 0 &&
-        formData.reasonCode[0].coding[0].display
-      ) {
-        return formData.reasonCode[0].coding[0].display;
-      }
-    }
-    return '';
-  };
+  // Removing the unused function to fix the error
 
   // Function to handle location form type selection
   const handleLocationFormChange = (index: number, code: string) => {
@@ -1686,7 +1838,7 @@ const EncounterCrudPage: React.FC = () => {
                       <input
                         type="text"
                         name="reasonCode.0.text"
-                        id="reasonCode.0.text"
+                        id="reasonCode.0.text-view"
                         value={formData.reasonCode[0].text || ''}
                         onChange={(e) => {
                           setFormData((prev) => ({
@@ -1719,6 +1871,7 @@ const EncounterCrudPage: React.FC = () => {
                         onChange={(e) => handleReasonCodeChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         aria-label="Select a reason code"
+                        disabled
                       >
                         <option value="">Select reason code</option>
                         {REASON_CODE_OPTIONS.map((option) => (
@@ -1749,6 +1902,7 @@ const EncounterCrudPage: React.FC = () => {
                     value={formData.reasonReference?.[0]?.reference || ''}
                     onChange={handleReferenceChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
                   >
                     <option value="">Select a reason reference</option>
                     {conditionOptions.map((option) => (
@@ -1786,21 +1940,32 @@ const EncounterCrudPage: React.FC = () => {
                     {/* Location name/description */}
                     <div>
                       <label
-                        htmlFor={`location.${index}.location.display`}
+                        htmlFor={`location.${index}.location.reference`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Location Name/Description *
+                        Location Reference *
                       </label>
-                      <input
-                        type="text"
-                        name={`location.${index}.location.display`}
-                        id={`location.${index}.location.display`}
-                        value={location.location?.display || ''}
-                        onChange={handleChange}
+                      <select
+                        name={`location.${index}.location.reference`}
+                        id={`location.${index}.location.reference`}
+                        value={location.location?.reference || ''}
+                        onChange={(e) =>
+                          handleLocationReferenceChange(index, e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="E.g., Emergency Room, Ward A, etc."
                         required
-                      />
+                        disabled
+                      >
+                        <option value="">Select a location</option>
+                        {locationOptions.map((option) => (
+                          <option
+                            key={option.reference}
+                            value={option.reference}
+                          >
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Location status */}
@@ -1817,6 +1982,7 @@ const EncounterCrudPage: React.FC = () => {
                         value={location.status || 'active'}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        disabled
                       >
                         {LOCATION_STATUS_OPTIONS.map((option) => (
                           <option key={option.code} value={option.code}>
@@ -1837,12 +2003,14 @@ const EncounterCrudPage: React.FC = () => {
                       </label>
                       <select
                         id={`location.${index}.form`}
+                        name={`location.${index}.form`}
                         aria-labelledby={`location-${index}-form-label`}
                         value={location.form?.coding?.[0]?.code || ''}
                         onChange={(e) =>
                           handleLocationFormChange(index, e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        disabled
                       >
                         <option value="">Select location type</option>
                         {LOCATION_FORM_OPTIONS.map((option) => (
@@ -1868,6 +2036,7 @@ const EncounterCrudPage: React.FC = () => {
                         value={formatDateForInput(location.period?.start)}
                         onChange={handleChange}
                         className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md mb-2"
+                        disabled
                       />
 
                       <label
@@ -1883,6 +2052,7 @@ const EncounterCrudPage: React.FC = () => {
                         value={formatDateForInput(location.period?.end)}
                         onChange={handleChange}
                         className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        disabled
                       />
                     </div>
                   </div>
@@ -1909,13 +2079,48 @@ const EncounterCrudPage: React.FC = () => {
           {group.id === 'admission' && (
             <div className="sm:col-span-2">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Pre-admission identifier */}
+                {/* Pre-admission identifier - system first, then value */}
+                <div>
+                  <label
+                    id="pre-admission-system-label"
+                    htmlFor="hospitalization.preAdmissionIdentifier.system"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Pre-admission Identifier System
+                  </label>
+                  <select
+                    id="hospitalization.preAdmissionIdentifier.system"
+                    aria-labelledby="pre-admission-system-label"
+                    value={(() => {
+                      const systemUrl =
+                        formData.hospitalization?.preAdmissionIdentifier
+                          ?.system || '';
+                      const option = IDENTIFIER_SYSTEM_OPTIONS.find(
+                        (opt) => opt.system === systemUrl,
+                      );
+                      return option?.code || '';
+                    })()}
+                    onChange={(e) =>
+                      handlePreAdmissionSystemChange(e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
+                  >
+                    <option value="">Select identifier system</option>
+                    {IDENTIFIER_SYSTEM_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label
                     htmlFor="hospitalization.preAdmissionIdentifier.value"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Pre-admission Identifier
+                    Pre-admission Identifier Value
                   </label>
                   <input
                     type="text"
@@ -1939,37 +2144,35 @@ const EncounterCrudPage: React.FC = () => {
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Pre-admission ID"
+                    disabled
                   />
                 </div>
 
                 {/* Origin */}
                 <div>
                   <label
-                    htmlFor="hospitalization.origin.display"
+                    htmlFor="hospitalization.origin.reference"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Origin (Location/Organization)
                   </label>
-                  <input
-                    type="text"
-                    name="hospitalization.origin.display"
-                    id="hospitalization.origin.display"
-                    value={formData.hospitalization?.origin?.display || ''}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        hospitalization: {
-                          ...prev.hospitalization,
-                          origin: {
-                            ...prev.hospitalization?.origin,
-                            display: e.target.value,
-                          },
-                        },
-                      }));
-                    }}
+                  <select
+                    name="hospitalization.origin.reference"
+                    id="hospitalization.origin.reference"
+                    value={formData.hospitalization?.origin?.reference || ''}
+                    onChange={(e) =>
+                      handleOriginReferenceChange(e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Location patient came from"
-                  />
+                    disabled
+                  >
+                    <option value="">Select origin</option>
+                    {locationOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Admit Source */}
@@ -1990,6 +2193,7 @@ const EncounterCrudPage: React.FC = () => {
                     }
                     onChange={(e) => handleAdmitSourceChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
                   >
                     <option value="">Select admit source</option>
                     {ADMIT_SOURCE_OPTIONS.map((option) => (
@@ -2003,6 +2207,7 @@ const EncounterCrudPage: React.FC = () => {
                 {/* Re-admission */}
                 <div>
                   <label
+                    id="readmission-label"
                     htmlFor="hospitalization.reAdmission"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
@@ -2010,12 +2215,14 @@ const EncounterCrudPage: React.FC = () => {
                   </label>
                   <select
                     id="hospitalization.reAdmission"
+                    aria-labelledby="readmission-label"
                     value={
                       formData.hospitalization?.reAdmission?.coding?.[0]
                         ?.code || ''
                     }
                     onChange={(e) => handleReadmissionChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
                   >
                     <option value="">Not a re-admission</option>
                     {READMISSION_OPTIONS.map((option) => (
@@ -2029,31 +2236,30 @@ const EncounterCrudPage: React.FC = () => {
                 {/* Destination */}
                 <div>
                   <label
-                    htmlFor="hospitalization.destination.display"
+                    htmlFor="hospitalization.destination.reference"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Destination
                   </label>
-                  <input
-                    type="text"
-                    name="hospitalization.destination.display"
-                    id="hospitalization.destination.display"
-                    value={formData.hospitalization?.destination?.display || ''}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        hospitalization: {
-                          ...prev.hospitalization,
-                          destination: {
-                            ...prev.hospitalization?.destination,
-                            display: e.target.value,
-                          },
-                        },
-                      }));
-                    }}
+                  <select
+                    name="hospitalization.destination.reference"
+                    id="hospitalization.destination.reference"
+                    value={
+                      formData.hospitalization?.destination?.reference || ''
+                    }
+                    onChange={(e) =>
+                      handleDestinationReferenceChange(e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Discharge destination"
-                  />
+                    disabled
+                  >
+                    <option value="">Select destination</option>
+                    {locationOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Discharge Disposition */}
@@ -2069,7 +2275,6 @@ const EncounterCrudPage: React.FC = () => {
                     id="hospitalization.dischargeDisposition"
                     name="hospitalization.dischargeDisposition"
                     aria-labelledby="discharge-disposition-label"
-                    aria-label="Discharge Disposition"
                     value={
                       formData.hospitalization?.dischargeDisposition
                         ?.coding?.[0]?.code || ''
@@ -2078,6 +2283,7 @@ const EncounterCrudPage: React.FC = () => {
                       handleDischargeDispositionChange(e.target.value)
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled
                   >
                     <option value="">Select discharge disposition</option>
                     {DISCHARGE_DISPOSITION_OPTIONS.map((option) => (
@@ -2592,12 +2798,10 @@ const EncounterCrudPage: React.FC = () => {
                       />
 
                       <select
-                        id="reasonCode.0.coding.0.code"
-                        name="reasonCode.0.coding.0.code"
-                        aria-label="Select a reason code"
                         value={formData.reasonCode[0]?.coding?.[0]?.code || ''}
                         onChange={(e) => handleReasonCodeChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        aria-label="Select a reason code"
                       >
                         <option value="">Select reason code</option>
                         {REASON_CODE_OPTIONS.map((option) => (
@@ -2665,21 +2869,31 @@ const EncounterCrudPage: React.FC = () => {
                     {/* Location name/description */}
                     <div>
                       <label
-                        htmlFor={`location.${index}.location.display`}
+                        htmlFor={`location.${index}.location.reference`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Location Name/Description *
+                        Location Reference *
                       </label>
-                      <input
-                        type="text"
-                        name={`location.${index}.location.display`}
-                        id={`location.${index}.location.display`}
-                        value={location.location?.display || ''}
-                        onChange={handleChange}
+                      <select
+                        name={`location.${index}.location.reference`}
+                        id={`location.${index}.location.reference`}
+                        value={location.location?.reference || ''}
+                        onChange={(e) =>
+                          handleLocationReferenceChange(index, e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="E.g., Emergency Room, Ward A, etc."
                         required
-                      />
+                      >
+                        <option value="">Select a location</option>
+                        {locationOptions.map((option) => (
+                          <option
+                            key={option.reference}
+                            value={option.reference}
+                          >
+                            {option.display}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Location status */}
@@ -2708,6 +2922,7 @@ const EncounterCrudPage: React.FC = () => {
                     {/* Location form (physical type) */}
                     <div>
                       <label
+                        id={`location-${index}-form-label`}
                         htmlFor={`location.${index}.form`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
@@ -2715,6 +2930,8 @@ const EncounterCrudPage: React.FC = () => {
                       </label>
                       <select
                         id={`location.${index}.form`}
+                        name={`location.${index}.form`}
+                        aria-labelledby={`location-${index}-form-label`}
                         value={location.form?.coding?.[0]?.code || ''}
                         onChange={(e) =>
                           handleLocationFormChange(index, e.target.value)
@@ -2786,13 +3003,47 @@ const EncounterCrudPage: React.FC = () => {
           {group.id === 'admission' && (
             <div className="sm:col-span-2">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Pre-admission identifier */}
+                {/* Pre-admission identifier - system first, then value */}
+                <div>
+                  <label
+                    id="pre-admission-system-label"
+                    htmlFor="hospitalization.preAdmissionIdentifier.system"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Pre-admission Identifier System
+                  </label>
+                  <select
+                    id="hospitalization.preAdmissionIdentifier.system"
+                    aria-labelledby="pre-admission-system-label"
+                    value={(() => {
+                      const systemUrl =
+                        formData.hospitalization?.preAdmissionIdentifier
+                          ?.system || '';
+                      const option = IDENTIFIER_SYSTEM_OPTIONS.find(
+                        (opt) => opt.system === systemUrl,
+                      );
+                      return option?.code || '';
+                    })()}
+                    onChange={(e) =>
+                      handlePreAdmissionSystemChange(e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select identifier system</option>
+                    {IDENTIFIER_SYSTEM_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label
                     htmlFor="hospitalization.preAdmissionIdentifier.value"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Pre-admission Identifier
+                    Pre-admission Identifier Value
                   </label>
                   <input
                     type="text"
@@ -2822,36 +3073,33 @@ const EncounterCrudPage: React.FC = () => {
                 {/* Origin */}
                 <div>
                   <label
-                    htmlFor="hospitalization.origin.display"
+                    htmlFor="hospitalization.origin.reference"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Origin (Location/Organization)
                   </label>
-                  <input
-                    type="text"
-                    name="hospitalization.origin.display"
-                    id="hospitalization.origin.display"
-                    value={formData.hospitalization?.origin?.display || ''}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        hospitalization: {
-                          ...prev.hospitalization,
-                          origin: {
-                            ...prev.hospitalization?.origin,
-                            display: e.target.value,
-                          },
-                        },
-                      }));
-                    }}
+                  <select
+                    name="hospitalization.origin.reference"
+                    id="hospitalization.origin.reference"
+                    value={formData.hospitalization?.origin?.reference || ''}
+                    onChange={(e) =>
+                      handleOriginReferenceChange(e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Location patient came from"
-                  />
+                  >
+                    <option value="">Select origin</option>
+                    {locationOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Admit Source */}
                 <div>
                   <label
+                    id="admit-source-label"
                     htmlFor="hospitalization.admitSource"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
@@ -2859,6 +3107,7 @@ const EncounterCrudPage: React.FC = () => {
                   </label>
                   <select
                     id="hospitalization.admitSource"
+                    aria-labelledby="admit-source-label"
                     value={
                       formData.hospitalization?.admitSource?.coding?.[0]
                         ?.code || ''
@@ -2878,6 +3127,7 @@ const EncounterCrudPage: React.FC = () => {
                 {/* Re-admission */}
                 <div>
                   <label
+                    id="readmission-label"
                     htmlFor="hospitalization.reAdmission"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
@@ -2885,6 +3135,7 @@ const EncounterCrudPage: React.FC = () => {
                   </label>
                   <select
                     id="hospitalization.reAdmission"
+                    aria-labelledby="readmission-label"
                     value={
                       formData.hospitalization?.reAdmission?.coding?.[0]
                         ?.code || ''
@@ -2904,31 +3155,29 @@ const EncounterCrudPage: React.FC = () => {
                 {/* Destination */}
                 <div>
                   <label
-                    htmlFor="hospitalization.destination.display"
+                    htmlFor="hospitalization.destination.reference"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Destination
                   </label>
-                  <input
-                    type="text"
-                    name="hospitalization.destination.display"
-                    id="hospitalization.destination.display"
-                    value={formData.hospitalization?.destination?.display || ''}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        hospitalization: {
-                          ...prev.hospitalization,
-                          destination: {
-                            ...prev.hospitalization?.destination,
-                            display: e.target.value,
-                          },
-                        },
-                      }));
-                    }}
+                  <select
+                    name="hospitalization.destination.reference"
+                    id="hospitalization.destination.reference"
+                    value={
+                      formData.hospitalization?.destination?.reference || ''
+                    }
+                    onChange={(e) =>
+                      handleDestinationReferenceChange(e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Discharge destination"
-                  />
+                  >
+                    <option value="">Select destination</option>
+                    {locationOptions.map((option) => (
+                      <option key={option.reference} value={option.reference}>
+                        {option.display}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Discharge Disposition */}
