@@ -5,10 +5,10 @@
       "args": [
         "-y",
         "figma-developer-mcp",
-        "--figma-api-key=YOUR-FIGMA-API-KEY-HERE",
+        "--figma-api-key=<INSERT_FIGMA_API_KEY>",
         "--stdio"
       ]
     }
   }
-  // Replace YOUR-FIGMA-API-KEY-HERE with the token you created in your Figma settings
+  // Replace <INSERT_FIGMA_API_KEY> with the token you created in your Figma settings
 }
