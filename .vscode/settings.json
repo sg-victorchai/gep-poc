@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "Framelink Figma MCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp",
+        "--figma-api-key=<INSERT_FIGMA_API_KEY>",
+        "--stdio"
+      ]
+    }
+  }
+  // Replace <INSERT_FIGMA_API_KEY> with the token you created in your Figma settings
+}
